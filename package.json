@@ -6,8 +6,13 @@
     "dev": "next dev",
     "dev-webpack": "next dev --webpack",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint ."
+    "start": "node --loader tsx ./backend/server.ts",
+    "lint": "eslint .",
+    "build:backend": "cd backend && npm run build && cd ..",
+    "build:all": "npm run build:backend",
+    "dev:backend": "cd backend && npm run dev",
+    "seed": "cd scripts && tsx run-seed.ts",
+    "reset-db": "cd scripts && tsx reset-db.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
