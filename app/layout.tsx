@@ -11,8 +11,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Botware AI - Professional WhatsApp Business Platform',
-  description: 'Botware AI: Professional WhatsApp Business messaging platform for customer communication',
+  title: 'Botware AI - Plataforma Profesional de WhatsApp Business',
+  description: 'Botware AI: Plataforma profesional de WhatsApp Business para gestión y comunicación con clientes',
   generator: 'Botware AI',
   icons: {
     icon: [
@@ -44,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
         <ThemeProvider
           attribute="class"

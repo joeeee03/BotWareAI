@@ -28,13 +28,13 @@ export default function LoginPage() {
       await login(email, password)
       
       toast({
-        title: "Login successful",
-        description: "Welcome back!",
+        title: "Inicio de sesión exitoso",
+        description: "¡Bienvenido de vuelta!",
       })
     } catch (error: any) {
       toast({
-        title: "Login failed",
-        description: error.message || "Invalid credentials",
+        title: "Error al iniciar sesión",
+        description: error.message || "Credenciales inválidas",
         variant: "destructive",
       })
     } finally {
@@ -52,19 +52,19 @@ export default function LoginPage() {
       <Card className="w-full max-w-md border-slate-700 bg-slate-800/50 backdrop-blur-xl shadow-2xl">
         <CardHeader className="space-y-3 text-center">
           <CompanyLogo />
-          <CardTitle className="text-3xl font-bold text-white">Welcome Back</CardTitle>
+          <CardTitle className="text-3xl font-bold text-white">Bienvenido</CardTitle>
           <CardDescription className="text-slate-400 text-base">
-            Sign in to your WhatsApp Business account
+            Inicia sesión en tu cuenta de WhatsApp Business
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-200 font-medium">Email Address</Label>
+              <Label htmlFor="email" className="text-slate-200 font-medium">Correo Electrónico</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Ingresa tu correo"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -73,11 +73,11 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-200 font-medium">Password</Label>
+              <Label htmlFor="password" className="text-slate-200 font-medium">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -93,17 +93,17 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Signing in...
+                  Iniciando sesión...
                 </div>
               ) : (
-                "Sign In"
+                "Iniciar Sesión"
               )}
             </Button>
           </form>
           
           <div className="text-center">
             <p className="text-slate-400 text-sm">
-              Secure login with bcrypt encryption
+              Inicio de sesión seguro con encriptación bcrypt
             </p>
           </div>
         </CardContent>

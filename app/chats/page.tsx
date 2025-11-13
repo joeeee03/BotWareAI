@@ -119,7 +119,7 @@ export default function ChatsPage() {
       setConversations(sortedConversations)
     } catch (error: any) {
       toast({
-        title: "Failed to load conversations",
+        title: "Error al cargar conversaciones",
         description: error.message,
         variant: "destructive",
       })
@@ -210,8 +210,8 @@ export default function ChatsPage() {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-medium dark:text-slate-200 text-slate-700">Mensajería en tiempo real</div>
-                    <div className="text-xs dark:text-slate-500 text-slate-600">Comunicación instantánea con clientes</div>
+                  <div className="text-sm font-medium dark:text-slate-200 text-slate-700">Mensajería en Tiempo Real</div>
+                  <div className="text-xs dark:text-slate-500 text-slate-600">Comunicación instantánea con tus clientes</div>
                   </div>
                 </div>
                 
@@ -222,7 +222,7 @@ export default function ChatsPage() {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-medium dark:text-slate-200 text-slate-700">Seguro y encriptado</div>
+                    <div className="text-sm font-medium dark:text-slate-200 text-slate-700">Seguro y Encriptado</div>
                     <div className="text-xs dark:text-slate-500 text-slate-600">Protección de extremo a extremo</div>
                   </div>
                 </div>
