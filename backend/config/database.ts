@@ -20,8 +20,8 @@ pool.on("connect", () => {
 })
 
 pool.on("error", (err: Error) => {
-  console.error("[v0] Unexpected database error:", err)
-  process.exit(-1)
+  console.error("[v0] Database connection error:", err)
+  // Don't exit - let the server keep running, healthcheck endpoint should still respond
 })
 
 export default pool
