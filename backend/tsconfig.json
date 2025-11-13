@@ -14,7 +14,15 @@
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "strictFunctionTypes": false
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": false,
+    "alwaysStrict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist"]
