@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Fondo circular -->
+  <circle cx="100" cy="100" r="95" fill="#3B82F6" opacity="0.1" stroke="#3B82F6" stroke-width="2"/>
+  
+  <!-- Icono de chat -->
+  <g transform="translate(50, 60)">
+    <!-- Burbuja de chat principal -->
+    <rect x="0" y="0" width="100" height="60" rx="8" fill="#3B82F6"/>
+    <!-- Cola de la burbuja -->
+    <polygon points="10,60 0,70 15,60" fill="#3B82F6"/>
+    
+    <!-- Líneas de texto simuladas -->
+    <rect x="8" y="10" width="30" height="4" fill="white" rx="2"/>
+    <rect x="8" y="20" width="84" height="4" fill="white" rx="2"/>
+    <rect x="8" y="30" width="84" height="4" fill="white" rx="2"/>
+    <rect x="8" y="40" width="50" height="4" fill="white" rx="2"/>
+  </g>
+  
+  <!-- Burbuja secundaria -->
+  <circle cx="140" cy="80" r="20" fill="#10B981"/>
+  
+  <!-- Texto "Chat Messages" -->
+  <text x="100" y="170" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#3B82F6">
+    Chat Messages
+  </text>
+</svg>
