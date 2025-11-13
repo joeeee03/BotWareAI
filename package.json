@@ -6,7 +6,7 @@
     "dev": "next dev --webpack",
     "dev-turbo": "next dev",
     "build": "next build --webpack",
-    "start": "node backend/dist/server.js",
+    "start": "node --no-warnings backend/dist/server.js",
     "lint": "eslint .",
     "build:backend": "cd backend && npm run build && cd ..",
     "build:all": "npm run build:backend",

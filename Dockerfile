@@ -75,4 +75,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Start backend with Node directly (no tsx needed)
-CMD ["node", "backend/dist/server.js"]
+CMD ["node", "--no-warnings", "backend/dist/server.js"]
