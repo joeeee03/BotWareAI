@@ -30,6 +30,7 @@ export function CompanyLogo() {
             width={112}
             height={112}
             className="w-full h-full object-contain drop-shadow-lg"
+            style={{ backgroundColor: 'transparent' }}
             priority
           />
         )}

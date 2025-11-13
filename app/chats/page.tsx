@@ -194,6 +194,7 @@ export default function ChatsPage() {
                     width={96}
                     height={96}
                     className="w-full h-full object-contain"
+                    style={{ backgroundColor: 'transparent' }}
                     priority
                   />
                 </div>
