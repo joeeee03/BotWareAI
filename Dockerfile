@@ -38,7 +38,7 @@ RUN npx next build --webpack 2>/dev/null || npx next build
 # Copy backend source
 COPY backend/ ./backend/
 
-# Build backend
+# Build backend (compile TypeScript)
 RUN npm --prefix backend run build
 
 # Production stage
@@ -55,18 +55,17 @@ COPY --from=builder /app/next.config.mjs ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/postcss.config.mjs ./
 
-# Copy built backend from builder
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/package.json ./backend/
+# Copy built backend TypeScript source and dist from builder
+COPY --from=builder /app/backend ./backend
 
-# Copy production node_modules
+# Copy root package files
 COPY package.json package-lock.json ./
-RUN npm ci --only=production
 
-COPY backend/package-lock.json ./backend/
+# Install production dependencies
+RUN npm ci --only=production
 RUN npm --prefix backend ci --only=production
 
-# Install tsx globally
+# Install tsx globally for running TypeScript
 RUN npm install -g tsx
 
 # Set port
@@ -76,5 +75,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:3001/health || exit 1
 
-# Start backend
-CMD ["npm", "--prefix", "backend", "start"]
+# Start backend with tsx (loads TypeScript directly)
+CMD ["tsx", "backend/server.ts"]
