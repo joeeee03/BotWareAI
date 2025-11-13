@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev-turbo": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "node --loader tsx ./backend/server.ts",
     "lint": "eslint .",
     "build:backend": "cd backend && npm run build && cd ..",
