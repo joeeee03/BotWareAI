@@ -157,8 +157,11 @@ export { io }
 
 const PORT = process.env.PORT || 3001
 
-httpServer.listen(PORT, () => {
-  console.log(`[v0] Server running on port ${PORT}`)
+console.log(`[v0] Attempting to listen on port ${PORT}...`)
+
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`[v0] ✅ Server running on port ${PORT}`)
+  console.log(`[v0] Listening on 0.0.0.0:${PORT}`)
   
   // [TAG: Realtime]
   // Iniciar listener de PostgreSQL para detectar inserts en messages
@@ -172,6 +175,13 @@ httpServer.listen(PORT, () => {
   } catch (err) {
     console.error('[v0] Error starting realtime listener:', err)
     // Server continues running even if realtime listener fails
+  }
+})
+
+httpServer.on('error', (err: any) => {
+  console.error('[v0] 🔴 Server error:', err.code, err.message)
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[v0] Port ${PORT} is already in use`)
   }
 })
 
