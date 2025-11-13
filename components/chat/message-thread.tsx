@@ -317,8 +317,8 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
       </div>
 
       {/* Messages */}
-  <ScrollArea className="flex-1 overflow-y-auto p-4 dark:bg-slate-900 bg-white" ref={scrollRef}>
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 overflow-y-auto p-4 dark:bg-slate-900 bg-white" ref={scrollRef}>
+        <div className="space-y-2">
           {messages.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="dark:text-slate-400 text-slate-600">Sin mensajes aún — inicia la conversación</div>
@@ -332,7 +332,7 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
               >
                 <div
                   className={cn(
-                    "max-w-[70%] rounded-lg px-5 py-3 shadow-sm relative",
+                    "max-w-[70%] rounded-lg px-5 py-2 shadow-sm relative",
                     // Professional styling: bot -> blue, user -> slate/white
                     message.sender === "bot" 
                       ? "bg-blue-600 text-white" 
