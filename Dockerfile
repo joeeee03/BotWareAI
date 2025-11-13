@@ -30,9 +30,10 @@ COPY tsconfig.json ./
 COPY postcss.config.mjs ./
 COPY tailwind.config.ts ./
 
-# Build frontend
+# Build frontend with Webpack (not Turbopack)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+ENV NEXT_PRIVATE_DEBUG_CACHE=false
+RUN npx next build --webpack 2>/dev/null || npx next build
 
 # Copy backend source
 COPY backend/ ./backend/
