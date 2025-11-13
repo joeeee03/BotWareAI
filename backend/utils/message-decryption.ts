@@ -7,13 +7,13 @@ import crypto from 'crypto'
    ============================================================ */
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || ''
 // Generate a temporary key if not provided (for development/Railway initial setup)
-const FINAL_KEY = ENCRYPTION_KEY || require('crypto').randomBytes(32).toString('hex')
+const FINAL_KEY = ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex')
 if (!ENCRYPTION_KEY) {
   console.warn('⚠️  No ENCRYPTION_KEY found in environment. Generated temporary key:', FINAL_KEY)
   console.warn('⚠️  Add this to your .env file: ENCRYPTION_KEY=' + FINAL_KEY)
 }
 
-const KEY = require('crypto').createHash('sha256').update(FINAL_KEY).digest() // 32 bytes exactos
+const KEY = crypto.createHash('sha256').update(FINAL_KEY).digest() // 32 bytes exactos
 const IV = KEY.slice(0, 16) // IV fijo → cifrado determinista compatible
 const ALGORITHM = 'aes-256-cbc'
 
