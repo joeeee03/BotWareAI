@@ -58,6 +58,7 @@ COPY --from=builder /app/postcss.config.mjs ./
 # Copy compiled backend JavaScript from builder
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/package.json ./backend/package.json
+COPY --from=builder /app/backend/package-lock.json ./backend/package-lock.json
 
 # Copy root package files
 COPY package.json package-lock.json ./
