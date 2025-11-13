@@ -54,7 +54,7 @@ export default function LoginPage() {
           <CompanyLogo />
           <CardTitle className="text-3xl font-bold text-white">Bienvenido</CardTitle>
           <CardDescription className="text-slate-400 text-base">
-            Inicia sesión en tu cuenta de WhatsApp Business
+            Inicia sesión para acceder a tus mensajes
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -64,7 +64,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Ingresa tu correo"
+                placeholder="ejemplo@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -77,7 +77,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Ingresa tu contraseña"
+                placeholder="Mínimo 8 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
