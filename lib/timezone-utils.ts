@@ -116,19 +116,9 @@ export function convertToTimezone(utcDate: string | Date, countryCode: string): 
 // Format message timestamp for display
 export function formatMessageTime(utcDate: string | Date, countryCode: string): string {
   const localDate = convertToTimezone(utcDate, countryCode)
-  const now = new Date()
-  const diffInHours = (now.getTime() - localDate.getTime()) / (1000 * 60 * 60)
   
-  if (diffInHours < 24) {
-    // Show time for messages within 24 hours
-    return format(localDate, 'HH:mm', { locale: es })
-  } else if (diffInHours < 168) { // 7 days
-    // Show day and time for messages within a week
-    return format(localDate, 'EEE HH:mm', { locale: es })
-  } else {
-    // Show date and time for older messages
-    return format(localDate, 'dd/MM/yyyy HH:mm', { locale: es })
-  }
+  // Always show only time in HH:mm format
+  return format(localDate, 'HH:mm', { locale: es })
 }
 
 // Format conversation last message time

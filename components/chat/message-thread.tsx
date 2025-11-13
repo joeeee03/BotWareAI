@@ -332,7 +332,7 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
               >
                 <div
                   className={cn(
-                    "max-w-[70%] rounded-lg px-4 py-2 shadow-sm",
+                    "max-w-[70%] rounded-lg px-5 py-3 shadow-sm relative",
                     // Professional styling: bot -> blue, user -> slate/white
                     message.sender === "bot" 
                       ? "bg-blue-600 text-white" 
@@ -340,10 +340,10 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
                     message.isPending && "opacity-60",
                   )}
                 >
-                  <div className="text-sm break-words">
+                  <div className="text-base break-words pr-14">
                     {formatWhatsAppText(message.message)}
                   </div>
-                  <p className={cn("text-xs mt-1", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
+                  <p className={cn("text-xs mt-2 absolute bottom-2 right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
                     {formatMessageTime(message.created_at, userCountry)}
                   </p>
                 </div>
