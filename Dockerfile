@@ -10,7 +10,7 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-# Install all dependencies
+# Install all dependencies (including devDependencies for build)
 RUN npm ci
 RUN npm --prefix backend ci
 
@@ -38,8 +38,8 @@ RUN npx next build --webpack 2>/dev/null || npx next build
 # Copy backend source
 COPY backend/ ./backend/
 
-# Build backend (compile TypeScript)
-RUN npm --prefix backend run build
+# Build backend TypeScript to JavaScript
+RUN cd backend && npx tsc --skipLibCheck
 
 # Production stage
 FROM node:20-alpine
@@ -55,18 +55,16 @@ COPY --from=builder /app/next.config.mjs ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/postcss.config.mjs ./
 
-# Copy built backend TypeScript source and dist from builder
-COPY --from=builder /app/backend ./backend
+# Copy compiled backend JavaScript from builder
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/package.json ./backend/package.json
 
 # Copy root package files
 COPY package.json package-lock.json ./
 
-# Install production dependencies
+# Install production dependencies only
 RUN npm ci --only=production
 RUN npm --prefix backend ci --only=production
-
-# Install tsx globally for running TypeScript
-RUN npm install -g tsx
 
 # Set port
 EXPOSE 3001
@@ -75,5 +73,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:3001/health || exit 1
 
-# Start backend with tsx (loads TypeScript directly)
-CMD ["tsx", "backend/server.ts"]
+# Start backend with Node directly (no tsx needed)
+CMD ["node", "backend/dist/server.js"]
