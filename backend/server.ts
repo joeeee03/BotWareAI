@@ -145,7 +145,12 @@ httpServer.listen(PORT, () => {
   // [TAG: Realtime]
   // Iniciar listener de PostgreSQL para detectar inserts en messages
   console.log('[v0] Starting PostgreSQL realtime listener...')
-  startRealtimeListener(io)
+  try {
+    startRealtimeListener(io)
+  } catch (err) {
+    console.error('[v0] Error starting realtime listener:', err)
+    // Server continues running even if realtime listener fails
+  }
 })
 
 export default app

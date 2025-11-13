@@ -77,4 +77,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Start backend
-CMD ["npm", "start"]
+CMD ["npm", "--prefix", "backend", "start"]
