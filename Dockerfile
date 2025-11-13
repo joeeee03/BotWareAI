@@ -1,32 +1,71 @@
-# Build and production stage
-FROM node:20-alpine
+# Build stage
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Set environment to production
-ENV NODE_ENV=production
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
 
 # Copy package files
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-# Install dependencies
-RUN npm ci --only=production
-RUN npm --prefix backend ci --only=production
+# Install all dependencies
+RUN npm ci
+RUN npm --prefix backend ci
 
-# Copy backend source code
+# Copy all frontend source files
+COPY app/ ./app/
+COPY components/ ./components/
+COPY contexts/ ./contexts/
+COPY hooks/ ./hooks/
+COPY lib/ ./lib/
+COPY public/ ./public/
+COPY styles/ ./styles/
+COPY types/ ./types/
+
+# Copy config files
+COPY next.config.mjs ./
+COPY tsconfig.json ./
+COPY postcss.config.mjs ./
+COPY tailwind.config.ts ./
+
+# Build frontend
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# Copy backend source
 COPY backend/ ./backend/
 
-# Copy scripts
-COPY scripts/ ./scripts/
-
-# Install dependencies for build
-RUN npm ci
-
-# Build TypeScript backend
+# Build backend
 RUN npm --prefix backend run build
 
-# Install tsx for runtime
+# Production stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copy built frontend from builder
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.mjs ./
+COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder /app/postcss.config.mjs ./
+
+# Copy built backend from builder
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/package.json ./backend/
+
+# Copy production node_modules
+COPY package.json package-lock.json ./
+RUN npm ci --only=production
+
+COPY backend/package-lock.json ./backend/
+RUN npm --prefix backend ci --only=production
+
+# Install tsx globally
 RUN npm install -g tsx
 
 # Set port
@@ -34,7 +73,7 @@ EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:3001/health || exit 1
 
-# Start the server
+# Start backend
 CMD ["npm", "start"]
