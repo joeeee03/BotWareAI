@@ -1,11 +1,30 @@
 // [TAG: Mensajes]
 // API client for HTTP requests
 
-// En producción (Railway), usar rutas relativas para que Next.js rewrite al backend
-// En desarrollo local, usar http://localhost:3001
-const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-  ? '' // Producción: rutas relativas (Next.js hace rewrite)
-  : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001") // Desarrollo local
+// IMPORTANTE: En Railway, frontend y backend corren en el MISMO servidor pero diferentes puertos
+// Frontend: puerto asignado por Railway (variable PORT)
+// Backend: puerto 3001 (fijo, definido en backend/server.ts)
+// Las APIs DEBEN llamar al backend en :3001 directamente
+let API_URL: string
+
+if (typeof window !== 'undefined') {
+  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+  
+  if (isProduction) {
+    // RAILWAY: Conectar al backend en el mismo dominio pero puerto 3001
+    const protocol = window.location.protocol
+    const hostname = window.location.hostname
+    API_URL = `${protocol}//${hostname}:3001`
+    console.log('[API-CLIENT] RAILWAY MODE - Backend URL:', API_URL)
+  } else {
+    // LOCAL: Conectar a localhost:3001
+    API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+    console.log('[API-CLIENT] LOCAL MODE - Backend URL:', API_URL)
+  }
+} else {
+  // SSR: usar localhost
+  API_URL = "http://localhost:3001"
+}
 
 export class ApiClient {
   private token: string | null = null

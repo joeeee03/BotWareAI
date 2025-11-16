@@ -64,7 +64,7 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
   }
 
   const { conversationId } = req.params
-  const { limit = 50, cursor } = req.query  // Reduced from 100 to 50 for faster loading
+  const { limit = 50, cursor } = req.query  // Cargar últimos 50 mensajes por defecto
   
   console.log(`[MESSAGES] 📨 Loading messages for conversation ${conversationId}, user ${req.user.user_id}`)
   console.log(`[MESSAGES] 📊 Limit: ${limit}, Cursor: ${cursor || 'none'}`)

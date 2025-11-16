@@ -190,9 +190,16 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
     // Don't show loading spinner - show UI immediately for better UX
     setIsLoading(true)
     
+    console.log('[MESSAGE-THREAD] 🔄 Loading messages for conversation:', conversation.id)
+    
     // Start loading in background
     try {
-      const response = await apiClient.getMessages(conversation.id.toString(), 50)  // Load only 50 messages for speed
+      const response = await apiClient.getMessages(conversation.id.toString(), 50)  // Cargar últimos 50 mensajes
+      console.log('[MESSAGE-THREAD] ✅ Loaded', response.messages.length, 'messages from API')
+      if (response.messages.length > 0) {
+        console.log('[MESSAGE-THREAD] 📊 First message:', response.messages[0]?.message?.substring(0, 50))
+        console.log('[MESSAGE-THREAD] 📊 Last message:', response.messages[response.messages.length - 1]?.message?.substring(0, 50))
+      }
       setMessages(response.messages)
       
       // Scroll after messages loaded
