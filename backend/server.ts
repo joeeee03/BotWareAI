@@ -113,17 +113,19 @@ async function initializeServer() {
       }
       
       // [TAG: Realtime]
-      // Iniciar listener de PostgreSQL para detectar inserts en messages
-      console.log('[v0] Starting PostgreSQL realtime listener...')
+      // Iniciar polling para detectar nuevos mensajes (SIN TRIGGERS en BD)
+      console.log('[v0] Starting message polling system...')
       try {
-        import("./realtime-listener.js").then(({ startRealtimeListener }) => {
-          startRealtimeListener(io)
+        import("./services/message-polling.js").then(({ startMessagePolling }) => {
+          // Poll cada 2 segundos (2000ms)
+          startMessagePolling(io, 2000)
+          console.log('[v0] ✅ Message polling started')
         }).catch(err => {
-          console.error('[v0] Error importing realtime listener:', err)
+          console.error('[v0] Error importing message polling:', err)
         })
       } catch (err) {
-        console.error('[v0] Error starting realtime listener:', err)
-        // Server continues running even if realtime listener fails
+        console.error('[v0] Error starting message polling:', err)
+        // Server continues running even if polling fails
       }
       
       resolve(true)
