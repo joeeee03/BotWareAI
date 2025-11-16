@@ -20,7 +20,7 @@ console.log("[v0] Express and HTTP server created")
 export const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
-      // Permitir requests sin origin
+      // Permitir requests sin origin (importante para Railway)
       if (!origin) return callback(null, true)
       
       const allowedOrigins = [
@@ -31,25 +31,32 @@ export const io = new Server(httpServer, {
         "http://127.0.0.1:8080"
       ].filter(Boolean)
       
-      // En Railway, permitir cualquier puerto del mismo dominio
+      // En Railway, permitir cualquier subdominio de railway.app
       if (origin.includes('.railway.app') || origin.includes('.up.railway.app')) {
         console.log("[v0] Socket.IO - Allowing Railway origin:", origin)
         return callback(null, true)
       }
       
-      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.length === 0) {
-        console.log("[v0] Socket.IO - Allowing origin:", origin)
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        console.log("[v0] Socket.IO - Allowing known origin:", origin)
         callback(null, true)
       } else {
-        console.log("[v0] Socket.IO - Unknown origin (allowing anyway):", origin)
-        callback(null, true) // Permitir de todos modos
+        console.log("[v0] Socket.IO - Allowing unknown origin:", origin)
+        callback(null, true) // Permitir todos en Railway
       }
     },
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "OPTIONS"],
     credentials: true,
+    allowedHeaders: ["*"],
   },
   path: '/socket.io',
-  transports: ['websocket', 'polling'],
+  // En Railway, priorizar polling porque funciona mejor con Next.js proxy
+  transports: ['polling', 'websocket'],
+  allowEIO3: true, // Compatibilidad con versiones anteriores
+  pingTimeout: 60000, // Más tiempo para Railway
+  pingInterval: 25000,
+  upgradeTimeout: 30000,
+  maxHttpBufferSize: 1e6,
 })
 
 console.log("[v0] Socket.IO configured")

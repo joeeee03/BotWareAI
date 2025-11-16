@@ -49,18 +49,22 @@ export const initializeSocket = (token: string): Socket => {
   console.log('🔌 [SOCKET] Path: /socket.io (Next.js will rewrite this)')
   console.log('🔌 [SOCKET] Token length:', token.length)
 
+  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+  
   socket = io(socketUrl, {
-    path: '/socket.io', // Explicit path for Socket.IO (Next.js will rewrite this)
+    path: '/socket.io',
     auth: {
       token,
     },
-    transports: ["websocket", "polling"],
+    // En Railway, usar polling primero porque WebSocket puede fallar con Next.js proxy
+    transports: isProduction ? ["polling", "websocket"] : ["websocket", "polling"],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-    reconnectionAttempts: 10, // More attempts for better reliability
-    timeout: 20000,
-    forceNew: false, // Reuse existing connections
+    reconnectionAttempts: 10, // Más intentos en Railway
+    timeout: isProduction ? 30000 : 20000, // Más tiempo en Railway
+    forceNew: false,
+    upgrade: true, // Permitir upgrade de polling a websocket
     autoConnect: true,
   })
 

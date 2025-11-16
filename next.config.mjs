@@ -26,19 +26,44 @@ const nextConfig = {
       },
     ];
   },
-  // Enable WebSocket upgrade support
+  // Headers para Socket.IO (especialmente polling)
   async headers() {
     return [
       {
         source: '/socket.io/:path*',
         headers: [
           {
-            key: 'Connection',
-            value: 'Upgrade',
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
           },
           {
-            key: 'Upgrade',
-            value: 'websocket',
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
+          },
+        ],
+      },
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: '*',
           },
         ],
       },
