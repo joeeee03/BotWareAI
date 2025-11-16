@@ -23,10 +23,9 @@ export const initializeSocket = (token: string): Socket => {
 
   currentToken = token
 
-  // IMPORTANTE: En Railway, el backend corre en el MISMO servidor pero en puerto diferente
-  // Frontend: puerto asignado por Railway (ej: 8080)
-  // Backend: puerto 3001 (fijo)
-  // Socket.IO DEBE conectarse directamente al backend en :3001
+  // IMPORTANTE: En Railway, Next.js hace REWRITE de /socket.io/* al backend interno
+  // Railway solo expone UN puerto, así que Socket.IO debe usar el mismo origen
+  // Next.js reescribe /socket.io/* a http://localhost:3001/socket.io/*
   
   let socketUrl: string
   
@@ -34,22 +33,20 @@ export const initializeSocket = (token: string): Socket => {
     const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
     
     if (isProduction) {
-      // RAILWAY: Conectar al backend en el mismo dominio pero puerto 3001
-      const protocol = window.location.protocol
-      const hostname = window.location.hostname
-      socketUrl = `${protocol}//${hostname}:3001`
-      console.log('🔌 [SOCKET] RAILWAY MODE - Connecting to backend:', socketUrl)
+      // RAILWAY: Usar el mismo origen (Next.js hará el rewrite internamente)
+      socketUrl = window.location.origin
+      console.log('🔌 [SOCKET] RAILWAY MODE - Using Next.js rewrite:', socketUrl)
     } else {
-      // LOCAL: Conectar a localhost:3001
+      // LOCAL: Conectar directamente a localhost:3001
       socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001"
-      console.log('🔌 [SOCKET] LOCAL MODE - Connecting to:', socketUrl)
+      console.log('🔌 [SOCKET] LOCAL MODE - Direct connection:', socketUrl)
     }
   } else {
     socketUrl = "http://localhost:3001"
   }
 
   console.log('🔌 [SOCKET] Final socket URL:', socketUrl)
-  console.log('🔌 [SOCKET] Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A')
+  console.log('🔌 [SOCKET] Path: /socket.io (Next.js will rewrite this)')
   console.log('🔌 [SOCKET] Token length:', token.length)
 
   socket = io(socketUrl, {

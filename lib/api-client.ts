@@ -1,29 +1,26 @@
 // [TAG: Mensajes]
 // API client for HTTP requests
 
-// IMPORTANTE: En Railway, frontend y backend corren en el MISMO servidor pero diferentes puertos
-// Frontend: puerto asignado por Railway (variable PORT)
-// Backend: puerto 3001 (fijo, definido en backend/server.ts)
-// Las APIs DEBEN llamar al backend en :3001 directamente
+// IMPORTANTE: En Railway, Next.js hace REWRITE de /api/* y /socket.io/* al backend interno
+// Railway solo expone UN puerto, así que usamos rutas relativas que Next.js proxea
+// En local, conectamos directamente a localhost:3001
 let API_URL: string
 
 if (typeof window !== 'undefined') {
   const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
   
   if (isProduction) {
-    // RAILWAY: Conectar al backend en el mismo dominio pero puerto 3001
-    const protocol = window.location.protocol
-    const hostname = window.location.hostname
-    API_URL = `${protocol}//${hostname}:3001`
-    console.log('[API-CLIENT] RAILWAY MODE - Backend URL:', API_URL)
+    // RAILWAY: Usar rutas relativas para que Next.js haga el rewrite al backend interno
+    API_URL = ''
+    console.log('[API-CLIENT] RAILWAY MODE - Using Next.js rewrites (relative URLs)')
   } else {
-    // LOCAL: Conectar a localhost:3001
+    // LOCAL: Conectar directamente a localhost:3001
     API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
     console.log('[API-CLIENT] LOCAL MODE - Backend URL:', API_URL)
   }
 } else {
-  // SSR: usar localhost
-  API_URL = "http://localhost:3001"
+  // SSR: usar rutas relativas también
+  API_URL = ''
 }
 
 export class ApiClient {
