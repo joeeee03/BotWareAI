@@ -114,8 +114,10 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
     const messagesResult = await pool.query(query, params)
     console.log(`[MESSAGES] 📊 Found ${messagesResult.rows.length} messages in DB for conversation ${conversationId}`)
     if (messagesResult.rows.length > 0) {
-      console.log(`[MESSAGES] 📅 First message date: ${messagesResult.rows[0].created_at}`)
-      console.log(`[MESSAGES] 📅 Last message date: ${messagesResult.rows[messagesResult.rows.length - 1].created_at}`)
+      const firstMsg = messagesResult.rows[0] as any
+      const lastMsg = messagesResult.rows[messagesResult.rows.length - 1] as any
+      console.log(`[MESSAGES] 📅 First message date: ${firstMsg.created_at}`)
+      console.log(`[MESSAGES] 📅 Last message date: ${lastMsg.created_at}`)
     }
 
     // Decrypt messages before sending to frontend
