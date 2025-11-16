@@ -50,35 +50,24 @@ export const initializeSocket = (token: string): Socket => {
 
   socket.on("connect", () => {
     console.log("🟢 [SOCKET] Connected:", socket?.id)
+    console.log("🟢 [SOCKET] Transport:", socket?.io.engine.transport.name)
   })
 
   socket.on("disconnect", (reason) => {
     console.log("🔴 [SOCKET] Disconnected:", reason)
+    if (reason === "io server disconnect") {
+      console.log("🔴 [SOCKET] Server desconectó - reconectando...")
+      socket?.connect()
+    }
   })
 
   socket.on("connect_error", (error) => {
-    console.error("❌ [SOCKET] Connection error:", error)
+    console.error("❌ [SOCKET] Connection error:", error.message)
   })
 
-  // Add debugging for all events
-  socket.on("message:new", (message) => {
-    console.log("📨 [SOCKET] New message received:", message)
-  })
-
-  socket.on("message:sent:ack", (data) => {
-    console.log("✅ [SOCKET] Message sent ACK:", data)
-  })
-
-  socket.on("conversation:updated", (data) => {
-    console.log("🔄 [SOCKET] Conversation updated:", data)
-  })
-
-  socket.on("conversation:created", (data) => {
-    console.log("🆕 [SOCKET] New conversation created:", data)
-  })
-
-  socket.on("user:joined", (data) => {
-    console.log("👤 [SOCKET] User joined room:", data)
+  // Log TODOS los eventos recibidos (incluye message:new, conversation:updated, etc.)
+  socket.onAny((eventName, ...args) => {
+    console.log(`📨 [SOCKET] Event received: ${eventName}`, JSON.stringify(args).substring(0, 200))
   })
 
   return socket

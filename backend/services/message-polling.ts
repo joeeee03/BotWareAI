@@ -133,14 +133,24 @@ export function startMessagePolling(io: Server, intervalMs = 2000) {
     }
   }
 
+  // Ejecutar primera consulta inmediatamente
+  console.log('[MESSAGE-POLLING] 🚀 Ejecutando primera consulta INMEDIATAMENTE...')
+  checkForNewMessages().catch(err => console.error('[MESSAGE-POLLING] Error en primera consulta:', err))
+  checkForNewConversations().catch(err => console.error('[MESSAGE-POLLING] Error en primera consulta conversaciones:', err))
+
   // Ejecutar polling cada X segundos
   pollingInterval = setInterval(async () => {
+    console.log('[MESSAGE-POLLING] ⏰ Ejecutando polling programado...')
     await checkForNewMessages()
     await checkForNewConversations()
   }, intervalMs)
 
   console.log('[MESSAGE-POLLING] ✅ Polling iniciado exitosamente')
   console.log('[MESSAGE-POLLING] 📡 Sistema en tiempo real activo sin triggers')
+  console.log('[MESSAGE-POLLING] 🔍 IMPORTANTE: Busca estos logs para verificar que funciona:')
+  console.log('[MESSAGE-POLLING]    - "🔍 Consultando mensajes desde:" (cada 1 segundo)')
+  console.log('[MESSAGE-POLLING]    - "📊 Encontrados X mensajes nuevos"')
+  console.log('[MESSAGE-POLLING]    - "✅ Emitido message:new a conversation_X"')
 
   // Cleanup function
   return () => {
