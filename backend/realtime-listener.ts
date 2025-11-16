@@ -23,12 +23,18 @@ export function startRealtimeListener(io: Server) {
     }
 
     console.log('✅ [REALTIME] Conectado a PostgreSQL NOTIFY')
+    console.log('🎯 [REALTIME] Sistema PROFESIONAL: detección INSTANTÁNEA de cambios')
+    console.log('💡 [REALTIME] NO usa polling - PostgreSQL notifica automáticamente')
 
     // Escuchar notificaciones en el canal 'new_message'
     client.query('LISTEN new_message')
+    console.log('👂 [REALTIME] Escuchando canal: new_message')
     
     // Escuchar notificaciones en el canal 'new_conversation'
     client.query('LISTEN new_conversation')
+    console.log('👂 [REALTIME] Escuchando canal: new_conversation')
+    
+    console.log('🚀 [REALTIME] Sistema en tiempo real ACTIVO y esperando notificaciones...')
 
     client.on('notification', async (msg) => {
       if (msg.channel === 'new_message') {
@@ -60,16 +66,8 @@ export function startRealtimeListener(io: Server) {
 
           const messageData = result.rows[0]
           
-          // IMPORTANTE: Solo emitir eventos para mensajes ENTRANTES (sender='user')
-          // Los mensajes salientes (sender='bot') ya son manejados por el endpoint /send-message
-          // Si emitimos aquí también, causaría duplicados en la interfaz
-          if (messageData.sender === 'bot') {
-            console.log('⏭️ [REALTIME] Mensaje saliente detectado, ignorando (ya manejado por endpoint)')
-            return
-          }
-          
-          console.log('📨 [REALTIME] Mensaje entrante detectado (sender=user), procesando...')
-          console.log('🔍 [REALTIME] Message from DB:', messageData.message)
+          console.log(`📨 [REALTIME] Mensaje detectado - ID: ${messageData.id}, sender: ${messageData.sender}`)
+          console.log('🔍 [REALTIME] Message from DB:', messageData.message.substring(0, 50) + '...')
           
           // Decrypt message using the same function as normal message loading
           const decryptedText = decrypt(messageData.message) || messageData.message
@@ -85,15 +83,24 @@ export function startRealtimeListener(io: Server) {
             created_at: messageData.created_at
           }
 
-          console.log('📤 [REALTIME] Emitiendo message:new a room:', `conversation_${messageData.conversation_id}`)
+          const conversationRoom = `conversation_${messageData.conversation_id}`
+          const userRoom = `user_${messageData.user_id}`
           
-          // Emit to conversation room (SOLO para mensajes entrantes)
-          io.to(`conversation_${messageData.conversation_id}`).emit('message:new', decryptedMessage)
+          // Ver cuántos sockets están en cada room
+          const socketsInConversation = await io.in(conversationRoom).fetchSockets()
+          const socketsInUser = await io.in(userRoom).fetchSockets()
+          
+          console.log(`📤 [REALTIME] Emitiendo message:new a room: ${conversationRoom}`)
+          console.log(`📊 [REALTIME] Sockets conectados en ${conversationRoom}: ${socketsInConversation.length}`)
+          
+          // Emit to conversation room (TODOS los usuarios viendo esta conversación)
+          io.to(conversationRoom).emit('message:new', decryptedMessage)
 
-          console.log('📤 [REALTIME] Emitiendo conversation:updated a room:', `user_${messageData.user_id}`)
+          console.log(`📤 [REALTIME] Emitiendo conversation:updated a room: ${userRoom}`)
+          console.log(`📊 [REALTIME] Sockets conectados en ${userRoom}: ${socketsInUser.length}`)
           
           // Emit to user room for conversation list update
-          io.to(`user_${messageData.user_id}`).emit('conversation:updated', {
+          io.to(userRoom).emit('conversation:updated', {
             conversationId: messageData.conversation_id,
             lastMessage: decryptedMessage.message,
             lastMessageTime: decryptedMessage.created_at,
@@ -101,6 +108,13 @@ export function startRealtimeListener(io: Server) {
           })
 
           console.log('✅ [REALTIME] Eventos emitidos exitosamente para mensaje:', messageData.id)
+          
+          if (socketsInConversation.length === 0) {
+            console.log('⚠️ [REALTIME] ADVERTENCIA: Nadie está conectado a esta conversación')
+          }
+          if (socketsInUser.length === 0) {
+            console.log('⚠️ [REALTIME] ADVERTENCIA: El usuario no está conectado')
+          }
 
         } catch (error) {
           console.error('[REALTIME] Error procesando notificación:', error)

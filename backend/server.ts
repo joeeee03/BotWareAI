@@ -115,19 +115,34 @@ async function initializeServer() {
       }
       
       // [TAG: Realtime]
-      // Iniciar polling para detectar nuevos mensajes (SIN TRIGGERS en BD)
-      console.log('[v0] Starting message polling system...')
+      // Sistema PROFESIONAL: PostgreSQL LISTEN/NOTIFY (detección INSTANTÁNEA)
+      console.log('[v0] Configurando sistema de tiempo real profesional...')
       try {
-        import("./services/message-polling.js").then(({ startMessagePolling }) => {
-          // Poll cada 1 segundo (1000ms) para mejor tiempo real
-          startMessagePolling(io, 1000)
-          console.log('[v0] ✅ Message polling started')
+        // Paso 1: Crear triggers automáticamente (si no existen)
+        import("./setup-triggers-auto.js").then(async ({ setupTriggersIfNeeded }) => {
+          const triggersOk = await setupTriggersIfNeeded()
+          
+          if (triggersOk) {
+            console.log('[v0] ✅ Triggers configurados')
+            
+            // Paso 2: Iniciar LISTEN/NOTIFY (detección INSTANTÁNEA, sin polling)
+            console.log('[v0] Iniciando PostgreSQL LISTEN/NOTIFY...')
+            import("./realtime-listener.js").then(({ startRealtimeListener }) => {
+              startRealtimeListener(io)
+              console.log('[v0] ✅ Sistema LISTEN/NOTIFY activo')
+              console.log('[v0] 🚀 PostgreSQL notificará INSTANTÁNEAMENTE cuando se inserte un mensaje')
+              console.log('[v0] 💡 NO hay polling - es 100% tiempo real profesional')
+            }).catch(err => {
+              console.error('[v0] Error iniciando realtime listener:', err)
+            })
+          } else {
+            console.log('[v0] ⚠️  Triggers no disponibles - sistema puede no funcionar')
+          }
         }).catch(err => {
-          console.error('[v0] Error importing message polling:', err)
+          console.error('[v0] Error configurando triggers:', err)
         })
       } catch (err) {
-        console.error('[v0] Error starting message polling:', err)
-        // Server continues running even if polling fails
+        console.error('[v0] Error en setup de tiempo real:', err)
       }
       
       resolve(true)
