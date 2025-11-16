@@ -1,21 +1,14 @@
 {
-  "$schema": "https://railway.app/json-schema",
   "build": {
     "builder": "dockerfile",
-    "buildCommand": "npm run build:backend",
-    "startCommand": "npm start"
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "port": 3001,
     "restartPolicyType": "on_failure",
     "restartPolicyMaxRetries": 5,
-    "healthcheckPath": "/health",
-    "healthcheckInterval": 10,
-    "healthcheckTimeout": 5,
-    "healthcheckStartPeriod": 30
-  },
-  "variables": {
-    "PORT": "3001",
-    "NODE_ENV": "production"
+    "healthcheckPath": "/",
+    "healthcheckInterval": 30,
+    "healthcheckTimeout": 10,
+    "healthcheckStartPeriod": 60
   }
 }

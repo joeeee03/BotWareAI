@@ -67,122 +67,65 @@ app.get("/health", (req, res) => {
 
 console.log("[v0] Health check endpoint registered")
 
-// Import and register routes - wrapped in try-catch to prevent blocking
-try {
-  const { default: authRoutes } = await import("./routes/auth.js")
-  const { default: conversationsRoutes } = await import("./routes/conversations.js")
-  const { default: messagesRoutes } = await import("./routes/messages.js")
-  const { default: webhookRoutes } = await import("./routes/webhook.js")
-  const { default: botsRoutes } = await import("./routes/bots.js")
-  
-  app.use("/api/auth", authRoutes)
-  app.use("/api/conversations", conversationsRoutes)
-  app.use("/api/messages", messagesRoutes)
-  app.use("/api/webhook", webhookRoutes)
-  app.use("/api/bots", botsRoutes)
-  
-  console.log("[v0] Routes registered successfully")
-} catch (err) {
-  console.error("[v0] Error registering routes:", err)
-  // Continue anyway - healthcheck still works
+// Main async initialization function
+async function initializeServer() {
+  // Import and register routes - wrapped in try-catch to prevent blocking
+  try {
+    const { default: authRoutes } = await import("./routes/auth.js")
+    const { default: conversationsRoutes } = await import("./routes/conversations.js")
+    const { default: messagesRoutes } = await import("./routes/messages.js")
+    const { default: webhookRoutes } = await import("./routes/webhook.js")
+    const { default: botsRoutes } = await import("./routes/bots.js")
+    
+    app.use("/api/auth", authRoutes)
+    app.use("/api/conversations", conversationsRoutes)
+    app.use("/api/messages", messagesRoutes)
+    app.use("/api/webhook", webhookRoutes)
+    app.use("/api/bots", botsRoutes)
+    
+    console.log("[v0] Routes registered successfully")
+  } catch (err) {
+    console.error("[v0] Error registering routes:", err)
+    // Continue anyway - healthcheck still works
+  }
+
+  const PORT = process.env.PORT || 3001
+
+  console.log(`[v0] Attempting to listen on port ${PORT}...`)
+
+  return new Promise((resolve) => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log(`[v0] ✅ Server running on port ${PORT}`)
+      console.log(`[v0] Listening on 0.0.0.0:${PORT}`)
+      
+      // [TAG: Realtime]
+      // Iniciar listener de PostgreSQL para detectar inserts en messages
+      console.log('[v0] Starting PostgreSQL realtime listener...')
+      try {
+        import("./realtime-listener.js").then(({ startRealtimeListener }) => {
+          startRealtimeListener(io)
+        }).catch(err => {
+          console.error('[v0] Error importing realtime listener:', err)
+        })
+      } catch (err) {
+        console.error('[v0] Error starting realtime listener:', err)
+        // Server continues running even if realtime listener fails
+      }
+      
+      resolve(true)
+    })
+
+    httpServer.on('error', (err: any) => {
+      console.error('[v0] 🔴 Server error:', err.code, err.message)
+      if (err.code === 'EADDRINUSE') {
+        console.error(`[v0] Port ${PORT} is already in use`)
+      }
+    })
+  })
 }
 
-// [TAG: WebSocket]
-// Socket.IO connection handler
-io.on("connection", (socket) => {
-  const userId = socket.data.userId
-  console.log("[v0] Client connected:", socket.id, "User ID:", userId)
-
-  // Automatically join user room for global updates
-  socket.join(`user_${userId}`)
-  console.log("[v0] Client auto-joined user room:", userId)
-  socket.emit("user:joined", { userId })
-
-  // Join user room for global updates (manual)
-  socket.on("join:user", (requestedUserId: string) => {
-    // Only allow joining own user room
-    if (requestedUserId === userId.toString()) {
-      socket.join(`user_${requestedUserId}`)
-      console.log("[v0] Client manually joined user room:", requestedUserId)
-      socket.emit("user:joined", { userId: requestedUserId })
-    } else {
-      console.log("[v0] Unauthorized user room join attempt:", requestedUserId, "by user:", userId)
-    }
-  })
-
-  // Leave user room
-  socket.on("leave:user", (requestedUserId: string) => {
-    if (requestedUserId === userId.toString()) {
-      socket.leave(`user_${requestedUserId}`)
-      console.log("[v0] Client left user room:", requestedUserId)
-      socket.emit("user:left", { userId: requestedUserId })
-    }
-  })
-
-  // Join conversation room
-  socket.on("join:conversation", (conversationId: string) => {
-    const roomName = `conversation_${conversationId}`
-    socket.join(roomName)
-    
-    // Log room members
-    const room = io.sockets.adapter.rooms.get(roomName)
-    const memberCount = room ? room.size : 0
-    
-    console.log("🚪 [SOCKET] Client joined conversation:", conversationId)
-    console.log("👥 [SOCKET] Room members count:", memberCount)
-    socket.emit("conversation:joined", { conversationId })
-  })
-
-  // Leave conversation room
-  socket.on("leave:conversation", (conversationId: string) => {
-    const roomName = `conversation_${conversationId}`
-    socket.leave(roomName)
-    
-    // Log room members
-    const room = io.sockets.adapter.rooms.get(roomName)
-    const memberCount = room ? room.size : 0
-    
-    console.log("🚪 [SOCKET] Client left conversation:", conversationId)
-    console.log("👥 [SOCKET] Room members count:", memberCount)
-    socket.emit("conversation:left", { conversationId })
-  })
-
-  socket.on("disconnect", () => {
-    console.log("[v0] Client disconnected:", socket.id)
-  })
+// Call initialization
+initializeServer().catch(err => {
+  console.error('[v0] Fatal error during server initialization:', err)
+  process.exit(1)
 })
-
-// Export io for use in routes
-export { io }
-
-const PORT = process.env.PORT || 3001
-
-console.log(`[v0] Attempting to listen on port ${PORT}...`)
-
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`[v0] ✅ Server running on port ${PORT}`)
-  console.log(`[v0] Listening on 0.0.0.0:${PORT}`)
-  
-  // [TAG: Realtime]
-  // Iniciar listener de PostgreSQL para detectar inserts en messages
-  console.log('[v0] Starting PostgreSQL realtime listener...')
-  try {
-    import("./realtime-listener.js").then(({ startRealtimeListener }) => {
-      startRealtimeListener(io)
-    }).catch(err => {
-      console.error('[v0] Error importing realtime listener:', err)
-    })
-  } catch (err) {
-    console.error('[v0] Error starting realtime listener:', err)
-    // Server continues running even if realtime listener fails
-  }
-})
-
-httpServer.on('error', (err: any) => {
-  console.error('[v0] 🔴 Server error:', err.code, err.message)
-  if (err.code === 'EADDRINUSE') {
-    console.error(`[v0] Port ${PORT} is already in use`)
-  }
-})
-
-export default app

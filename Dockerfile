@@ -1,4 +1,6 @@
-# Build stage
+# ===================================
+# Build Stage - Compilar Backend y Frontend
+# ===================================
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -6,13 +8,25 @@ WORKDIR /app
 # Install build dependencies for native modules
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
-COPY package*.json ./
+# ===== BACKEND BUILD =====
+# Copy backend package files
 COPY backend/package*.json ./backend/
 
-# Install all dependencies (including devDependencies for build)
+# Install backend dependencies
+RUN cd backend && npm ci
+
+# Copy backend source
+COPY backend/ ./backend/
+
+# Build backend TypeScript to JavaScript
+RUN cd backend && npm run build
+
+# ===== FRONTEND BUILD =====
+# Copy frontend package files
+COPY package*.json ./
+
+# Install frontend dependencies
 RUN npm ci
-RUN npm --prefix backend ci
 
 # Copy all frontend source files
 COPY app/ ./app/
@@ -23,6 +37,7 @@ COPY lib/ ./lib/
 COPY public/ ./public/
 COPY styles/ ./styles/
 COPY types/ ./types/
+COPY components.json ./components.json
 
 # Copy config files
 COPY next.config.mjs ./
@@ -30,49 +45,46 @@ COPY tsconfig.json ./
 COPY postcss.config.mjs ./
 COPY tailwind.config.ts ./
 
-# Build frontend with Webpack (not Turbopack)
+# Build frontend with standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PRIVATE_DEBUG_CACHE=false
-RUN npx next build --webpack 2>/dev/null || npx next build
+RUN npm run build
 
-# Copy backend source
-COPY backend/ ./backend/
-
-# Build backend TypeScript to JavaScript
-RUN cd backend && npm run build || echo "TypeScript compilation completed with warnings"
-
-# Production stage
+# ===================================
+# Production Stage - Servidor Combinado
+# ===================================
 FROM node:20-alpine
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy built frontend from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.mjs ./
-COPY --from=builder /app/tsconfig.json ./
-COPY --from=builder /app/postcss.config.mjs ./
+# Install PM2 for process management
+RUN npm install -g pm2
 
-# Copy compiled backend JavaScript from builder
+# ===== COPY BACKEND =====
+# Copy compiled backend from builder
 COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/package.json ./backend/package.json
-COPY --from=builder /app/backend/package-lock.json ./backend/package-lock.json
+COPY --from=builder /app/backend/package*.json ./backend/
 
-# Copy root package files
-COPY package.json package-lock.json ./
+# Install backend production dependencies
+RUN cd backend && npm ci --only=production
 
-# Install production dependencies only
-RUN npm ci --only=production
-RUN npm --prefix backend ci --only=production
+# ===== COPY FRONTEND =====
+# Copy standalone Next.js build
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
-# Set port
-EXPOSE 3001
+# Copy server-combined.js
+COPY server-combined.js ./
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:3001/health || exit 1
+# Expose ports (Railway will use PORT env variable)
+EXPOSE 3000 3001
 
-# Start backend with Node directly (no tsx needed)
-CMD ["node", "--no-warnings", "backend/dist/server.js"]
+# Health check on frontend port
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-3000}/ || exit 1
+
+# Start both services with PM2
+CMD ["node", "server-combined.js"]
