@@ -23,7 +23,13 @@ export const initializeSocket = (token: string): Socket => {
 
   currentToken = token
 
-  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_IO_URL || "http://localhost:3001"
+  // En producción (Railway), usar rutas relativas para que Next.js rewrite al backend
+  // En desarrollo local, usar http://localhost:3001
+  const socketUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+    ? window.location.origin // Producción: usar el mismo origen (Next.js hace rewrite)
+    : (process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_IO_URL || "http://localhost:3001")
+
+  console.log('🔌 [SOCKET] Connecting to:', socketUrl)
 
   socket = io(socketUrl, {
     auth: {

@@ -1,7 +1,11 @@
 // [TAG: Mensajes]
 // API client for HTTP requests
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+// En producción (Railway), usar rutas relativas para que Next.js rewrite al backend
+// En desarrollo local, usar http://localhost:3001
+const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+  ? '' // Producción: rutas relativas (Next.js hace rewrite)
+  : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001") // Desarrollo local
 
 export class ApiClient {
   private token: string | null = null
