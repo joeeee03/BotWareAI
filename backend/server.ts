@@ -17,7 +17,7 @@ console.log("[v0] Express and HTTP server created")
 
 // [TAG: WebSocket]
 // Socket.IO configuration with CORS and authentication
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
     methods: ["GET", "POST"],
@@ -89,7 +89,7 @@ async function initializeServer() {
     // Continue anyway - healthcheck still works
   }
 
-  const PORT = process.env.PORT || 3001
+  const PORT = parseInt(process.env.PORT || '3001', 10)
 
   console.log(`[v0] Attempting to listen on port ${PORT}...`)
 

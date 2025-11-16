@@ -17,3 +17,14 @@ README.md
 .prettierignore
 coverage
 .nyc_output
+
+# Backend test and debug files (no compilar en producción)
+backend/test-*.ts
+backend/test-*.js
+backend/debug-*.ts
+backend/check-*.ts
+backend/fix-*.ts
+backend/migrate-*.ts
+backend/update-*.ts
+backend/setup-*.js
+backend/enviar-mensaje-ahora.js
