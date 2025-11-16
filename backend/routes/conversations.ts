@@ -83,11 +83,12 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
       return res.status(403).json({ error: "Access denied to this conversation" })
     }
 
-    // Get messages with cursor pagination (ordered ASC)
+    // Get messages - IMPORTANTE: traer los ÚLTIMOS X mensajes, no los primeros
     let query
     let params
 
     if (cursor) {
+      // Con cursor: traer mensajes DESPUÉS del cursor
       query = `SELECT id, sender, message, created_at 
                FROM messages 
                WHERE conversation_id = $1 AND created_at > $2
@@ -95,16 +96,27 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
                LIMIT $3`
       params = [conversationId, cursor, limit]
     } else {
-      query = `SELECT id, sender, message, created_at 
-               FROM messages 
-               WHERE conversation_id = $1
-               ORDER BY created_at ASC 
-               LIMIT $2`
+      // Sin cursor: traer los ÚLTIMOS X mensajes (subquery DESC + LIMIT, luego ASC)
+      query = `
+        SELECT id, sender, message, created_at 
+        FROM (
+          SELECT id, sender, message, created_at 
+          FROM messages 
+          WHERE conversation_id = $1
+          ORDER BY created_at DESC 
+          LIMIT $2
+        ) AS latest_messages
+        ORDER BY created_at ASC
+      `
       params = [conversationId, limit]
     }
 
     const messagesResult = await pool.query(query, params)
-    console.log(`[MESSAGES] 📊 Found ${messagesResult.rows.length} messages in DB`)
+    console.log(`[MESSAGES] 📊 Found ${messagesResult.rows.length} messages in DB for conversation ${conversationId}`)
+    if (messagesResult.rows.length > 0) {
+      console.log(`[MESSAGES] 📅 First message date: ${messagesResult.rows[0].created_at}`)
+      console.log(`[MESSAGES] 📅 Last message date: ${messagesResult.rows[messagesResult.rows.length - 1].created_at}`)
+    }
 
     // Decrypt messages before sending to frontend
     const decryptedMessages = decryptMessages(messagesResult.rows)
