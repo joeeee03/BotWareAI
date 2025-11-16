@@ -149,7 +149,7 @@ export default function ChatsPage() {
   }
 
   return (
-    // Professional chat interface with modern design
+    // Professional chat interface with mobile-first responsive design
     <div className="h-screen overflow-hidden flex bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 from-blue-50 via-white to-blue-100 relative">
       {/* Background pattern */}
       <div className="absolute inset-0 dark:opacity-5 opacity-20">
@@ -159,7 +159,13 @@ export default function ChatsPage() {
       </div>
 
       {/* Left sidebar - Conversation list */}
-      <div className="w-full md:w-96 border-r dark:border-slate-700/50 border-blue-200/50 flex-shrink-0 dark:bg-slate-800/30 bg-white/90 backdrop-blur-xl relative z-10 shadow-2xl">
+      {/* En móvil: se oculta cuando hay conversación seleccionada */}
+      <div className={`
+        ${selectedConversation ? 'hidden md:flex' : 'flex'} 
+        w-full md:w-96 border-r dark:border-slate-700/50 border-blue-200/50 
+        flex-shrink-0 dark:bg-slate-800/30 bg-white/90 backdrop-blur-xl 
+        relative z-10 shadow-2xl
+      `}>
         <ConversationList
           ref={sidebarRef}
           conversations={conversations}
@@ -169,7 +175,12 @@ export default function ChatsPage() {
       </div>
 
       {/* Right side - Message thread */}
-      <div className="flex-1 flex flex-col dark:bg-slate-900/20 bg-white/50 backdrop-blur-sm relative z-10">
+      {/* En móvil: ocupa toda la pantalla cuando hay conversación seleccionada */}
+      <div className={`
+        ${selectedConversation ? 'flex' : 'hidden md:flex'} 
+        flex-1 flex-col dark:bg-slate-900/20 bg-white/50 backdrop-blur-sm 
+        relative z-10
+      `}>
         {selectedConversation ? (
           <div className="h-full animate-in slide-in-from-right-4 duration-300">
             <MessageThread

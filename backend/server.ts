@@ -76,12 +76,14 @@ async function initializeServer() {
     const { default: messagesRoutes } = await import("./routes/messages.js")
     const { default: webhookRoutes } = await import("./routes/webhook.js")
     const { default: botsRoutes } = await import("./routes/bots.js")
+    const { default: debugRoutes } = await import("./routes/debug.js")
     
     app.use("/api/auth", authRoutes)
     app.use("/api/conversations", conversationsRoutes)
     app.use("/api/messages", messagesRoutes)
     app.use("/api/webhook", webhookRoutes)
     app.use("/api/bots", botsRoutes)
+    app.use("/api/debug", debugRoutes)
     
     console.log("[v0] Routes registered successfully")
   } catch (err) {
@@ -117,8 +119,8 @@ async function initializeServer() {
       console.log('[v0] Starting message polling system...')
       try {
         import("./services/message-polling.js").then(({ startMessagePolling }) => {
-          // Poll cada 2 segundos (2000ms)
-          startMessagePolling(io, 2000)
+          // Poll cada 1 segundo (1000ms) para mejor tiempo real
+          startMessagePolling(io, 1000)
           console.log('[v0] ✅ Message polling started')
         }).catch(err => {
           console.error('[v0] Error importing message polling:', err)

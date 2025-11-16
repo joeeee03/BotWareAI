@@ -298,10 +298,26 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
     <div className="flex-1 flex flex-col h-full dark:bg-slate-900 bg-white">
       {/* Header */}
       <div className="p-4 border-b dark:border-slate-700 border-blue-200 flex items-center justify-between dark:bg-slate-800/50 bg-white/90">
-        <div>
-          <h2 className="font-semibold dark:text-slate-100 text-slate-800">{conversation.customer_name || conversation.customer_phone}</h2>
-          <p className="text-sm dark:text-slate-400 text-slate-600">{conversation.customer_phone}</p>
+        <div className="flex items-center gap-3">
+          {/* Botón volver para móviles */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-2 rounded-lg dark:bg-slate-700/50 bg-blue-100/50 dark:text-slate-300 text-slate-600 hover:dark:bg-slate-600/50 hover:bg-blue-200/50 transition-colors"
+            aria-label="Volver a conversaciones"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          
+          <div>
+            <h2 className="font-semibold dark:text-slate-100 text-slate-800 text-sm sm:text-base">
+              {conversation.customer_name || conversation.customer_phone}
+            </h2>
+            <p className="text-xs sm:text-sm dark:text-slate-400 text-slate-600">{conversation.customer_phone}</p>
+          </div>
         </div>
+        
         <div className="flex items-center gap-2">
           {isLoading && (
             <div className="text-xs dark:text-slate-400 text-slate-500 animate-pulse">
@@ -309,8 +325,10 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
             </div>
           )}
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-full dark:bg-slate-700/50 bg-blue-100/50">
-            <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-400" : "bg-slate-500")} />
-            <span className="text-xs dark:text-slate-300 text-slate-600 font-medium">{isConnected ? "En línea" : "Desconectado"}</span>
+            <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-400" : "bg-red-400")} />
+            <span className="text-xs dark:text-slate-300 text-slate-600 font-medium">
+              {isConnected ? "En línea" : "Desconectado"}
+            </span>
           </div>
         </div>
       </div>
@@ -331,7 +349,7 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
               >
                 <div
                   className={cn(
-                    "max-w-[70%] rounded-lg px-5 py-2 shadow-sm relative",
+                    "max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 shadow-sm relative",
                     // Professional styling: bot -> blue, user -> slate/white
                     message.sender === "bot" 
                       ? "bg-blue-600 text-white" 
@@ -339,10 +357,10 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
                     message.isPending && "opacity-60",
                   )}
                 >
-                  <div className="text-base break-words pr-14">
+                  <div className="text-sm sm:text-base break-words pr-12 sm:pr-14">
                     {formatWhatsAppText(message.message)}
                   </div>
-                  <p className={cn("text-xs mt-2 absolute bottom-2 right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
+                  <p className={cn("text-xs mt-1 absolute bottom-1.5 right-2 sm:bottom-2 sm:right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
                     {formatMessageTime(message.created_at, userCountry)}
                   </p>
                 </div>

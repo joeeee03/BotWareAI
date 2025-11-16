@@ -8,12 +8,14 @@ import { decrypt } from '../utils/message-decryption.js'
 
 const { Pool } = pkg
 
-let lastCheckedTimestamp = new Date()
+// Inicializar timestamp en el pasado para capturar mensajes existentes
+let lastCheckedTimestamp = new Date(Date.now() - 60000) // 1 minuto atrás
 let pollingInterval: NodeJS.Timeout | null = null
 
 export function startMessagePolling(io: Server, intervalMs = 2000) {
   console.log('[MESSAGE-POLLING] 🔄 Iniciando polling de mensajes...')
   console.log('[MESSAGE-POLLING] ⏱️  Intervalo:', intervalMs, 'ms')
+  console.log('[MESSAGE-POLLING] 📅 Timestamp inicial:', lastCheckedTimestamp.toISOString())
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -41,42 +43,44 @@ export function startMessagePolling(io: Server, intervalMs = 2000) {
       
       const result = await pool.query(query, [lastCheckedTimestamp])
       
+      console.log(`[MESSAGE-POLLING] 🔍 Consultando mensajes desde: ${lastCheckedTimestamp.toISOString()}`)
+      console.log(`[MESSAGE-POLLING] 📊 Encontrados ${result.rows.length} mensajes nuevos`)
+      
       if (result.rows.length > 0) {
-        console.log(`[MESSAGE-POLLING] 📨 Encontrados ${result.rows.length} mensajes nuevos`)
-        
         for (const messageData of result.rows) {
-          // Solo procesar mensajes entrantes (sender='user')
-          if (messageData.sender === 'user') {
-            console.log('[MESSAGE-POLLING] 📥 Mensaje entrante:', messageData.id)
-            
-            // Desencriptar mensaje
-            const decryptedText = decrypt(messageData.message) || messageData.message
-            
-            const decryptedMessage = {
-              id: messageData.id,
-              conversation_id: messageData.conversation_id,
-              bot_id: messageData.bot_id,
-              sender: messageData.sender,
-              message: decryptedText,
-              created_at: messageData.created_at
-            }
-
-            // Emitir a la sala de conversación
-            io.to(`conversation_${messageData.conversation_id}`).emit('message:new', decryptedMessage)
-            console.log(`[MESSAGE-POLLING] ✅ Emitido a conversation_${messageData.conversation_id}`)
-
-            // Emitir a la sala del usuario para actualizar lista de conversaciones
-            io.to(`user_${messageData.user_id}`).emit('conversation:updated', {
-              conversationId: messageData.conversation_id,
-              lastMessage: decryptedMessage.message,
-              lastMessageTime: decryptedMessage.created_at,
-              newMessage: decryptedMessage
-            })
-            console.log(`[MESSAGE-POLLING] ✅ Emitido a user_${messageData.user_id}`)
+          console.log(`[MESSAGE-POLLING] 📨 Procesando mensaje ID: ${messageData.id}, sender: ${messageData.sender}`)
+          
+          // Desencriptar mensaje
+          const decryptedText = decrypt(messageData.message) || messageData.message
+          console.log(`[MESSAGE-POLLING] 🔓 Mensaje desencriptado: "${decryptedText.substring(0, 50)}..."`)
+          
+          const decryptedMessage = {
+            id: messageData.id,
+            conversation_id: messageData.conversation_id,
+            bot_id: messageData.bot_id,
+            sender: messageData.sender,
+            message: decryptedText,
+            created_at: messageData.created_at
           }
+
+          // Emitir a la sala de conversación (TODOS los mensajes)
+          const conversationRoom = `conversation_${messageData.conversation_id}`
+          io.to(conversationRoom).emit('message:new', decryptedMessage)
+          console.log(`[MESSAGE-POLLING] ✅ Emitido message:new a ${conversationRoom}`)
+
+          // Emitir a la sala del usuario para actualizar lista de conversaciones
+          const userRoom = `user_${messageData.user_id}`
+          io.to(userRoom).emit('conversation:updated', {
+            conversationId: messageData.conversation_id,
+            lastMessage: decryptedMessage.message,
+            lastMessageTime: decryptedMessage.created_at,
+            newMessage: decryptedMessage
+          })
+          console.log(`[MESSAGE-POLLING] ✅ Emitido conversation:updated a ${userRoom}`)
           
           // Actualizar último timestamp procesado
           lastCheckedTimestamp = new Date(messageData.created_at)
+          console.log(`[MESSAGE-POLLING] 📅 Timestamp actualizado a: ${lastCheckedTimestamp.toISOString()}`)
         }
       }
       
