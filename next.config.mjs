@@ -7,25 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
-  // Rewrite API calls and Socket.IO to backend
-  async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-    console.log('[Next.js] Rewriting /api/* and /socket.io/* to:', backendUrl);
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
-      },
-      {
-        source: '/socket.io',
-        destination: `${backendUrl}/socket.io`,
-      },
-      {
-        source: '/socket.io/:path*',
-        destination: `${backendUrl}/socket.io/:path*`,
-      },
-    ];
-  },
+  // Rewrites removidos - usando middleware.ts para proxy en standalone mode
   // Headers para Socket.IO (especialmente polling)
   async headers() {
     return [
