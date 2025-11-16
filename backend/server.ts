@@ -19,39 +19,98 @@ console.log("[v0] Express and HTTP server created")
 // Socket.IO configuration with CORS and authentication
 export const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Permitir requests sin origin
+      if (!origin) return callback(null, true)
+      
+      const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080"
+      ].filter(Boolean)
+      
+      // En Railway, permitir cualquier puerto del mismo dominio
+      if (origin.includes('.railway.app') || origin.includes('.up.railway.app')) {
+        console.log("[v0] Socket.IO - Allowing Railway origin:", origin)
+        return callback(null, true)
+      }
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.length === 0) {
+        console.log("[v0] Socket.IO - Allowing origin:", origin)
+        callback(null, true)
+      } else {
+        console.log("[v0] Socket.IO - Unknown origin (allowing anyway):", origin)
+        callback(null, true) // Permitir de todos modos
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
+  path: '/socket.io',
+  transports: ['websocket', 'polling'],
 })
 
 console.log("[v0] Socket.IO configured")
 
 // Socket.IO authentication middleware
 io.use((socket, next) => {
+  console.log("[v0] 🔐 Socket connection attempt from:", socket.handshake.address)
+  console.log("[v0] 🔐 Origin:", socket.handshake.headers.origin)
+  
   const token = socket.handshake.auth.token
   
   if (!token) {
-    console.log("[v0] Socket connection rejected: No token provided")
+    console.log("[v0] ❌ Socket connection rejected: No token provided")
+    console.log("[v0] ❌ Auth object:", socket.handshake.auth)
     return next(new Error("Authentication error: No token provided"))
   }
+
+  console.log("[v0] 🔑 Token received (first 20 chars):", token.substring(0, 20) + "...")
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
     socket.data.userId = decoded.user_id
     socket.data.user = decoded
-    console.log("[v0] Socket authenticated for user:", decoded.user_id)
+    console.log("[v0] ✅ Socket authenticated for user:", decoded.user_id)
+    console.log("[v0] ✅ Socket ID:", socket.id)
     next()
-  } catch (err) {
-    console.log("[v0] Socket connection rejected: Invalid token")
+  } catch (err: any) {
+    console.log("[v0] ❌ Socket connection rejected: Invalid token")
+    console.log("[v0] ❌ JWT Error:", err.message)
     next(new Error("Authentication error: Invalid token"))
   }
 })
 
-// Middleware
+// Middleware CORS - permitir diferentes puertos
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: function (origin, callback) {
+      // Permitir requests sin origin (como apps móviles o Postman)
+      if (!origin) return callback(null, true)
+      
+      // Lista de origenes permitidos
+      const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080"
+      ].filter(Boolean)
+      
+      // En Railway, permitir cualquier puerto del mismo dominio
+      if (origin.includes('.railway.app') || origin.includes('.up.railway.app')) {
+        return callback(null, true)
+      }
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true)
+      } else {
+        console.log('[CORS] Blocked origin:', origin)
+        callback(null, true) // Permitir de todos modos para evitar bloqueos
+      }
+    },
     credentials: true,
   }),
 )

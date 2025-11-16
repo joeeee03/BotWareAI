@@ -65,6 +65,9 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
 
   const { conversationId } = req.params
   const { limit = 50, cursor } = req.query  // Reduced from 100 to 50 for faster loading
+  
+  console.log(`[MESSAGES] 📨 Loading messages for conversation ${conversationId}, user ${req.user.user_id}`)
+  console.log(`[MESSAGES] 📊 Limit: ${limit}, Cursor: ${cursor || 'none'}`)
 
   try {
     // First verify that the conversation belongs to user's bot
@@ -101,9 +104,12 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
     }
 
     const messagesResult = await pool.query(query, params)
+    console.log(`[MESSAGES] 📊 Found ${messagesResult.rows.length} messages in DB`)
 
     // Decrypt messages before sending to frontend
     const decryptedMessages = decryptMessages(messagesResult.rows)
+    console.log(`[MESSAGES] 🔓 Decrypted ${decryptedMessages.length} messages`)
+    console.log(`[MESSAGES] ✅ Sending messages to frontend`)
 
     res.json({
       messages: decryptedMessages,
