@@ -223,27 +223,26 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
     const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement
     const scrollContainer = viewport || scrollRef.current
     
-    const scrollHeight = scrollContainer.scrollHeight
-    const maxScroll = scrollHeight + 9999
+    // Calcular el scroll máximo real
+    const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight
     
-    console.log("📜 [SCROLL] Forcing scroll to ABSOLUTE BOTTOM:", {
-      scrollHeight,
+    console.log("📜 [SCROLL] Scrolling to bottom:", {
+      scrollHeight: scrollContainer.scrollHeight,
+      clientHeight: scrollContainer.clientHeight,
       maxScroll,
-      currentScroll: scrollContainer.scrollTop,
-      hasViewport: !!viewport,
-      element: viewport ? 'viewport' : 'scrollRef'
+      currentScroll: scrollContainer.scrollTop
     })
     
-    // FORCE scroll to absolute maximum - NO smooth animations
-    scrollContainer.scrollTop = maxScroll
+    // FORZAR scroll al fondo (como WhatsApp)
+    scrollContainer.scrollTop = maxScroll + 100 // +100 para asegurar que llegue al fondo
     
-    // Also try with scrollTo for compatibility
+    // Intentar también con scrollTo
     scrollContainer.scrollTo({
-      top: maxScroll,
-      behavior: 'auto' // ALWAYS instant, never smooth
+      top: maxScroll + 100,
+      behavior: 'auto' // Siempre instantáneo
     })
     
-    console.log("📜 [SCROLL] After scroll:", scrollContainer.scrollTop, "/ Max possible:", scrollContainer.scrollHeight)
+    console.log("📜 [SCROLL] After scroll:", scrollContainer.scrollTop)
   }
 
   const handleSendMessage = async (e: React.FormEvent) => {

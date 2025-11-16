@@ -30,17 +30,22 @@ export const initializeSocket = (token: string): Socket => {
     : (process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_IO_URL || "http://localhost:3001")
 
   console.log('🔌 [SOCKET] Connecting to:', socketUrl)
+  console.log('🔌 [SOCKET] Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A')
+  console.log('🔌 [SOCKET] Is production:', typeof window !== 'undefined' && window.location.hostname !== 'localhost')
 
   socket = io(socketUrl, {
+    path: '/socket.io', // Explicit path for Socket.IO (Next.js will rewrite this)
     auth: {
       token,
     },
     transports: ["websocket", "polling"],
     reconnection: true,
-    reconnectionDelay: 2000,
+    reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-    reconnectionAttempts: 3,
+    reconnectionAttempts: 10, // More attempts for better reliability
     timeout: 20000,
+    forceNew: false, // Reuse existing connections
+    autoConnect: true,
   })
 
   socket.on("connect", () => {

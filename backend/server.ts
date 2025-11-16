@@ -98,6 +98,20 @@ async function initializeServer() {
       console.log(`[v0] ✅ Server running on port ${PORT}`)
       console.log(`[v0] Listening on 0.0.0.0:${PORT}`)
       
+      // [TAG: WebSocket]
+      // Setup Socket.IO event handlers
+      console.log('[v0] Setting up Socket.IO event handlers...')
+      try {
+        import("./services/socket-handler.js").then(({ setupSocketHandlers }) => {
+          setupSocketHandlers(io)
+          console.log('[v0] ✅ Socket.IO event handlers configured')
+        }).catch(err => {
+          console.error('[v0] Error setting up socket handlers:', err)
+        })
+      } catch (err) {
+        console.error('[v0] Error importing socket handlers:', err)
+      }
+      
       // [TAG: Realtime]
       // Iniciar listener de PostgreSQL para detectar inserts en messages
       console.log('[v0] Starting PostgreSQL realtime listener...')
