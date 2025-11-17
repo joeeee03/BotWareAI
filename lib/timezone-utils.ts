@@ -145,3 +145,40 @@ export function setUserCountry(countryCode: string): void {
     localStorage.setItem('userCountry', countryCode)
   }
 }
+
+// Check if two dates are the same day
+export function isSameDay(date1: Date, date2: Date): boolean {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  )
+}
+
+// Check if a date is today
+export function isToday(date: Date): boolean {
+  return isSameDay(date, new Date())
+}
+
+// Check if a date is yesterday
+export function isYesterday(date: Date): boolean {
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  return isSameDay(date, yesterday)
+}
+
+// Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
+export function formatDateSeparator(utcDate: string | Date, countryCode: string): string {
+  const localDate = convertToTimezone(utcDate, countryCode)
+  
+  if (isToday(localDate)) {
+    return 'Hoy'
+  }
+  
+  if (isYesterday(localDate)) {
+    return 'Ayer'
+  }
+  
+  // Format as: "Sáb, 9 nov" or "Lun, 21 oct"
+  return format(localDate, "eee, d MMM", { locale: es })
+}

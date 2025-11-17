@@ -6,6 +6,7 @@
 "use client"
 
 import type React from "react"
+import { Fragment } from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -17,7 +18,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatWhatsAppText } from "@/lib/whatsapp-formatter"
-import { formatMessageTime, getUserCountry } from "@/lib/timezone-utils"
+import { formatMessageTime, getUserCountry, formatDateSeparator, convertToTimezone, isSameDay } from "@/lib/timezone-utils"
 
 interface MessageThreadProps {
   conversation: any
@@ -505,33 +506,53 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
               <div className="dark:text-slate-400 text-slate-600">Sin mensajes aún — inicia la conversación</div>
             </div>
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.tempId || message.id}
-                // Bot messages should appear on the right (blue). User messages should be on the left (slate).
-                className={cn("flex", message.sender === "bot" ? "justify-end" : "justify-start")}
-              >
-                <div
-                  className={cn(
-                    "max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 shadow-sm relative transition-all duration-300",
-                    // Professional styling: bot -> blue, user -> slate/white
-                    message.sender === "bot" 
-                      ? message.isPending
-                        ? "bg-blue-700/70 text-white/90" // Más oscuro cuando está pendiente
-                        : "bg-blue-600 text-white"
-                      : "dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 bg-blue-50 text-slate-800 border border-blue-200",
-                    message.isPending && "opacity-80",
+            messages.map((message, index) => {
+              // Determinar si debemos mostrar el separador de fecha
+              const showDateSeparator = index === 0 || !isSameDay(
+                convertToTimezone(messages[index - 1].created_at, userCountry),
+                convertToTimezone(message.created_at, userCountry)
+              )
+              
+              return (
+                <Fragment key={message.tempId || message.id}>
+                  {/* Separador de fecha estilo WhatsApp */}
+                  {showDateSeparator && (
+                    <div className="flex justify-center my-4">
+                      <div className="px-3 py-1 rounded-lg dark:bg-slate-700/70 bg-slate-200/80 backdrop-blur-sm shadow-sm">
+                        <span className="text-xs font-medium dark:text-slate-300 text-slate-700">
+                          {formatDateSeparator(message.created_at, userCountry)}
+                        </span>
+                      </div>
+                    </div>
                   )}
-                >
-                  <div className="text-sm sm:text-base break-words pr-12 sm:pr-14">
-                    {formatWhatsAppText(message.message)}
+                  
+                  {/* Mensaje */}
+                  <div
+                    className={cn("flex", message.sender === "bot" ? "justify-end" : "justify-start")}
+                  >
+                    <div
+                      className={cn(
+                        "max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 shadow-sm relative transition-all duration-300",
+                        // Professional styling: bot -> blue, user -> slate/white
+                        message.sender === "bot" 
+                          ? message.isPending
+                            ? "bg-blue-700/70 text-white/90" // Más oscuro cuando está pendiente
+                            : "bg-blue-600 text-white"
+                          : "dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 bg-blue-50 text-slate-800 border border-blue-200",
+                        message.isPending && "opacity-80",
+                      )}
+                    >
+                      <div className="text-sm sm:text-base break-words pr-12 sm:pr-14">
+                        {formatWhatsAppText(message.message)}
+                      </div>
+                      <p className={cn("text-xs mt-1 absolute bottom-1.5 right-2 sm:bottom-2 sm:right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
+                        {formatMessageTime(message.created_at, userCountry)}
+                      </p>
+                    </div>
                   </div>
-                  <p className={cn("text-xs mt-1 absolute bottom-1.5 right-2 sm:bottom-2 sm:right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
-                    {formatMessageTime(message.created_at, userCountry)}
-                  </p>
-                </div>
-              </div>
-            ))
+                </Fragment>
+              )
+            })
           )}
         </div>
       </ScrollArea>
