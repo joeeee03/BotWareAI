@@ -416,30 +416,30 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                 key={conversation.id}
                 onClick={() => onSelectConversation(conversation)}
                 className={cn(
-                  "w-full p-4 flex items-start gap-3 dark:hover:bg-slate-700/30 hover:bg-blue-50/50 transition-all duration-200 text-left relative group",
-                  "hover:scale-[1.02] hover:shadow-md active:scale-[0.98]",
-                  selectedConversation?.id === conversation.id && "dark:bg-slate-700/50 bg-blue-100/70 border-r-4 border-blue-500 shadow-lg scale-[1.01]",
+                  "w-full p-3 sm:p-4 flex items-start gap-3 dark:hover:bg-slate-700/30 hover:bg-blue-50/50 transition-all duration-200 text-left relative group touch-manipulation",
+                  "active:scale-[0.98]",
+                  selectedConversation?.id === conversation.id && "dark:bg-slate-700/50 bg-blue-100/70 border-r-4 border-blue-500 shadow-lg",
                 )}
                 style={{ animationDelay: `${filtered.indexOf(conversation) * 30}ms` }}
               >
-                <Avatar className="h-12 w-12 flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:ring-2 group-hover:ring-blue-400/50">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold transition-all duration-300">
+                <Avatar className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:ring-2 group-hover:ring-blue-400/50">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-base sm:text-lg transition-all duration-300">
                     {getInitials(conversation.customer_name || conversation.customer_phone)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-semibold dark:text-slate-100 text-slate-800 text-sm transition-colors duration-200 group-hover:text-blue-500 truncate flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col gap-1 sm:gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-semibold dark:text-slate-100 text-slate-800 text-[15px] sm:text-base transition-colors duration-200 group-hover:text-blue-500 truncate flex-1 min-w-0">
                       {conversation.customer_name || conversation.customer_phone}
                     </h3>
                     {conversation.last_message_time && (
-                      <span className="text-[11px] dark:text-slate-400 text-slate-500 whitespace-nowrap flex-shrink-0">
+                      <span className="text-xs sm:text-[11px] dark:text-slate-400 text-slate-500 whitespace-nowrap flex-shrink-0">
                         {formatConversationTime(conversation.last_message_time, userCountry)}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-xs dark:text-slate-400 text-slate-600 line-clamp-1 flex-1 min-w-0">
+                    <p className="text-[13px] sm:text-xs dark:text-slate-400 text-slate-600 line-clamp-1 flex-1 min-w-0">
                       {conversation.last_message ? (
                         <>
                           {(() => {
@@ -458,7 +458,7 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                       ) : "Sin mensajes aún"}
                     </p>
                     {conversation.unread_count > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold leading-none text-white bg-blue-500 rounded-full shadow-lg flex-shrink-0">
+                      <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 text-[11px] font-bold leading-none text-white bg-blue-500 rounded-full shadow-lg flex-shrink-0">
                         {conversation.unread_count}
                       </span>
                     )}

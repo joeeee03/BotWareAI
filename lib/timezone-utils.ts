@@ -146,36 +146,40 @@ export function setUserCountry(countryCode: string): void {
   }
 }
 
-// Check if two dates are the same day
+// Check if two dates are the same day (only year, month, day)
 export function isSameDay(date1: Date, date2: Date): boolean {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  )
-}
-
-// Check if a date is today
-export function isToday(date: Date): boolean {
-  return isSameDay(date, new Date())
-}
-
-// Check if a date is yesterday
-export function isYesterday(date: Date): boolean {
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  return isSameDay(date, yesterday)
+  const d1 = new Date(date1)
+  const d2 = new Date(date2)
+  
+  // Normalizar a medianoche para comparar solo la fecha
+  d1.setHours(0, 0, 0, 0)
+  d2.setHours(0, 0, 0, 0)
+  
+  return d1.getTime() === d2.getTime()
 }
 
 // Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
 export function formatDateSeparator(utcDate: string | Date, countryCode: string): string {
   const localDate = convertToTimezone(utcDate, countryCode)
+  const now = new Date()
   
-  if (isToday(localDate)) {
+  // Normalizar fechas a medianoche para comparación
+  const messageDay = new Date(localDate)
+  messageDay.setHours(0, 0, 0, 0)
+  
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  yesterday.setHours(0, 0, 0, 0)
+  
+  // Comparar timestamps de medianoche
+  if (messageDay.getTime() === today.getTime()) {
     return 'Hoy'
   }
   
-  if (isYesterday(localDate)) {
+  if (messageDay.getTime() === yesterday.getTime()) {
     return 'Ayer'
   }
   

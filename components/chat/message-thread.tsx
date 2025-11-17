@@ -451,24 +451,24 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   return (
     <div className="flex-1 flex flex-col h-full dark:bg-slate-900 bg-white">
       {/* Header */}
-      <div className="p-4 border-b dark:border-slate-700 border-blue-200 flex items-center justify-between dark:bg-slate-800/50 bg-white/90">
-        <div className="flex items-center gap-3">
+      <div className="p-3 sm:p-4 border-b dark:border-slate-700 border-blue-200 flex items-center justify-between dark:bg-slate-800/50 bg-white/90 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           {/* Botón volver para móviles */}
           <button
             onClick={onClose}
-            className="md:hidden p-2 rounded-lg dark:bg-slate-700/50 bg-blue-100/50 dark:text-slate-300 text-slate-600 hover:dark:bg-slate-600/50 hover:bg-blue-200/50 transition-colors"
+            className="md:hidden p-2.5 rounded-lg dark:bg-slate-700/50 bg-blue-100/50 dark:text-slate-300 text-slate-600 hover:dark:bg-slate-600/50 hover:bg-blue-200/50 transition-colors flex-shrink-0 active:scale-95"
             aria-label="Volver a conversaciones"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           
-          <div>
-            <h2 className="font-semibold dark:text-slate-100 text-slate-800 text-sm sm:text-base">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold dark:text-slate-100 text-slate-800 text-base sm:text-lg truncate">
               {conversation.customer_name || conversation.customer_phone}
             </h2>
-            <p className="text-xs sm:text-sm dark:text-slate-400 text-slate-600">{conversation.customer_phone}</p>
+            <p className="text-sm dark:text-slate-400 text-slate-600 truncate">{conversation.customer_phone}</p>
           </div>
         </div>
         
@@ -517,9 +517,9 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                 <Fragment key={message.tempId || message.id}>
                   {/* Separador de fecha estilo WhatsApp */}
                   {showDateSeparator && (
-                    <div className="flex justify-center my-4">
-                      <div className="px-3 py-1 rounded-lg dark:bg-slate-700/70 bg-slate-200/80 backdrop-blur-sm shadow-sm">
-                        <span className="text-xs font-medium dark:text-slate-300 text-slate-700">
+                    <div className="flex justify-center my-3 sm:my-4">
+                      <div className="px-3 py-1.5 rounded-lg dark:bg-slate-700/80 bg-slate-200/90 backdrop-blur-sm shadow-sm">
+                        <span className="text-xs sm:text-sm font-medium dark:text-slate-200 text-slate-700">
                           {formatDateSeparator(message.created_at, userCountry)}
                         </span>
                       </div>
@@ -528,11 +528,11 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                   
                   {/* Mensaje */}
                   <div
-                    className={cn("flex", message.sender === "bot" ? "justify-end" : "justify-start")}
+                    className={cn("flex mb-2 px-2 sm:px-0", message.sender === "bot" ? "justify-end" : "justify-start")}
                   >
                     <div
                       className={cn(
-                        "max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 shadow-sm relative transition-all duration-300",
+                        "max-w-[85%] sm:max-w-[75%] rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-sm relative transition-all duration-300",
                         // Professional styling: bot -> blue, user -> slate/white
                         message.sender === "bot" 
                           ? message.isPending
@@ -542,10 +542,10 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                         message.isPending && "opacity-80",
                       )}
                     >
-                      <div className="text-sm sm:text-base break-words pr-12 sm:pr-14">
+                      <div className="text-[15px] sm:text-base break-words pr-14 sm:pr-16 leading-relaxed">
                         {formatWhatsAppText(message.message)}
                       </div>
-                      <p className={cn("text-xs mt-1 absolute bottom-1.5 right-2 sm:bottom-2 sm:right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
+                      <p className={cn("text-[11px] sm:text-xs mt-0.5 absolute bottom-2 right-2 sm:right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
                         {formatMessageTime(message.created_at, userCountry)}
                       </p>
                     </div>
@@ -558,21 +558,21 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-4 border-t dark:border-slate-700 border-blue-200 dark:bg-slate-800/50 bg-white/90">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+      <div className="p-3 sm:p-4 border-t dark:border-slate-700 border-blue-200 dark:bg-slate-800/50 bg-white/90 shadow-lg">
+        <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
           <Input
             value={inputMessage}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
             placeholder="Escribe un mensaje..."
             disabled={isSending}
-            className="flex-1 dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
+            className="flex-1 h-11 sm:h-10 text-base sm:text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
           />
           <Button 
             type="submit" 
             disabled={isSending || !inputMessage.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white h-11 w-11 sm:h-10 sm:w-10 p-0 rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5 sm:h-4 sm:w-4" />
           </Button>
         </form>
       </div>
