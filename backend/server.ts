@@ -193,6 +193,19 @@ async function initializeServer() {
         console.error('[Server] Socket import error:', err)
       }
       
+      // Start PostgreSQL LISTEN for detecting messages inserted from external sources
+      console.log('[Server] Starting PostgreSQL message listener...')
+      try {
+        import("./services/message-listener.js").then(({ startMessageListener }) => {
+          startMessageListener()
+          console.log('[Server] ✅ PostgreSQL message listener started')
+        }).catch(err => {
+          console.error('[Server] Message listener error:', err)
+        })
+      } catch (err) {
+        console.error('[Server] Message listener import error:', err)
+      }
+      
       resolve(true)
     })
 
