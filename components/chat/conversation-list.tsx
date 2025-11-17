@@ -427,35 +427,35 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                     {getInitials(conversation.customer_name || conversation.customer_phone)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0 overflow-hidden pr-16">
-                  <div className="flex items-start justify-between mb-1">
-                    <h3 className="font-medium truncate dark:text-slate-100 text-slate-800 text-sm transition-colors duration-200 group-hover:text-blue-500">
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <div className="flex items-baseline justify-between gap-2 pr-1">
+                    <h3 className="font-medium dark:text-slate-100 text-slate-800 text-sm transition-colors duration-200 group-hover:text-blue-500 truncate flex-1 min-w-0">
                       {conversation.customer_name || conversation.customer_phone}
                     </h3>
+                    {conversation.last_message_time && (
+                      <span className="text-[10px] dark:text-slate-400 text-slate-500 whitespace-nowrap flex-shrink-0 ml-2">
+                        {formatConversationTime(conversation.last_message_time, userCountry)}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs dark:text-slate-400 text-slate-600 truncate pr-2">
-                    {conversation.last_message ? (
-                      <>
-                        {conversation.last_message_sender === 'bot' && (
-                          <span className="font-bold">Tú: </span>
-                        )}
-                        {stripWhatsAppFormatting(conversation.last_message)}
-                      </>
-                    ) : "Sin mensajes aún"}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs dark:text-slate-400 text-slate-600 truncate flex-1 min-w-0">
+                      {conversation.last_message ? (
+                        <>
+                          {conversation.last_message_sender === 'bot' && (
+                            <span className="font-bold">Tú: </span>
+                          )}
+                          {stripWhatsAppFormatting(conversation.last_message)}
+                        </>
+                      ) : "Sin mensajes aún"}
+                    </p>
+                    {conversation.unread_count > 0 && (
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white bg-blue-500 rounded-full animate-pulse shadow-lg flex-shrink-0">
+                        {conversation.unread_count}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {conversation.last_message_time && (
-                  <span className="absolute top-4 right-4 text-xs dark:text-slate-400 text-slate-500 whitespace-nowrap">
-                    {formatConversationTime(conversation.last_message_time, userCountry)}
-                  </span>
-                )}
-                {conversation.unread_count > 0 && (
-                  <div className="absolute right-4 bottom-4 animate-fadeIn">
-                    <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-500 rounded-full animate-pulse shadow-lg">
-                      {conversation.unread_count}
-                    </span>
-                  </div>
-                )}
               </button>
             ))
           )}
