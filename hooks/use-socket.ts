@@ -55,7 +55,7 @@ export function useSocket({ token, conversationId, userId, onNewMessage, onMessa
     }
 
     if (onConversationCreated) {
-      socket.on("conversation:created", onConversationCreated)
+      socket.on("conversation:new", onConversationCreated)
     }
 
     // Add debugging for connection events
@@ -83,7 +83,7 @@ export function useSocket({ token, conversationId, userId, onNewMessage, onMessa
         socket.off("conversation:updated", onConversationUpdated)
       }
       if (onConversationCreated) {
-        socket.off("conversation:created", onConversationCreated)
+        socket.off("conversation:new", onConversationCreated)
       }
       
       // Clean up debugging listeners

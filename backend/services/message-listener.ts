@@ -35,8 +35,51 @@ export async function startMessageListener() {
     await listenerClient.connect()
     console.log('[MESSAGE-LISTENER] ✅ Cliente PostgreSQL conectado para LISTEN')
 
-    // Escuchar notificaciones de nuevos mensajes
+    // Escuchar notificaciones de nuevos mensajes Y nuevas conversaciones
     listenerClient.on('notification', async (msg) => {
+      // NUEVAS CONVERSACIONES
+      if (msg.channel === 'new_conversation') {
+        try {
+          const conversationData = JSON.parse(msg.payload || '{}')
+          console.log('[MESSAGE-LISTENER] 🆕 Nueva conversación detectada:', {
+            id: conversationData.conversation_id,
+            customer_phone: conversationData.customer_phone,
+            customer_name: conversationData.customer_name
+          })
+
+          // Obtener user_id del bot para emitir actualización
+          try {
+            const pool = (await import('../config/database.js')).default
+            const botResult = await pool.query(
+              'SELECT user_id FROM bots WHERE id = $1',
+              [conversationData.bot_id]
+            )
+            
+            if (botResult.rows.length > 0) {
+              const userId = botResult.rows[0].user_id
+              const userRoom = `user_${userId}`
+              console.log('[MESSAGE-LISTENER] 📤 Emitiendo conversation:new a room:', userRoom)
+              
+              // Emitir nueva conversación al usuario
+              io.to(userRoom).emit('conversation:new', {
+                id: conversationData.conversation_id,
+                bot_id: conversationData.bot_id,
+                customer_phone: conversationData.customer_phone,
+                customer_name: conversationData.customer_name,
+                created_at: conversationData.created_at
+              })
+            }
+          } catch (err) {
+            console.error('[MESSAGE-LISTENER] ❌ Error al obtener user_id:', err)
+          }
+
+          console.log('[MESSAGE-LISTENER] ✅ Nueva conversación emitida vía Socket.IO')
+        } catch (error) {
+          console.error('[MESSAGE-LISTENER] ❌ Error procesando nueva conversación:', error)
+        }
+      }
+      
+      // NUEVOS MENSAJES
       if (msg.channel === 'new_message') {
         try {
           const messageData = JSON.parse(msg.payload || '{}')
@@ -100,9 +143,10 @@ export async function startMessageListener() {
       }
     })
 
-    // Configurar LISTEN en el canal 'new_message'
+    // Configurar LISTEN en los canales 'new_message' y 'new_conversation'
     await listenerClient.query('LISTEN new_message')
-    console.log('[MESSAGE-LISTENER] ✅ Escuchando canal "new_message"')
+    await listenerClient.query('LISTEN new_conversation')
+    console.log('[MESSAGE-LISTENER] ✅ Escuchando canales "new_message" y "new_conversation"')
 
     // Manejar errores de conexión
     listenerClient.on('error', (err) => {
@@ -131,6 +175,7 @@ export async function stopMessageListener() {
   if (listenerClient) {
     try {
       await listenerClient.query('UNLISTEN new_message')
+      await listenerClient.query('UNLISTEN new_conversation')
       await listenerClient.end()
       console.log('[MESSAGE-LISTENER] 🛑 Listener detenido')
     } catch (error) {
