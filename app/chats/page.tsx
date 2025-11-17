@@ -117,6 +117,18 @@ export default function ChatsPage() {
   const loadConversations = async () => {
     try {
       const response = await apiClient.getConversations()
+      
+      // Debug: ver qué campos vienen del backend
+      if (response.conversations.length > 0) {
+        console.log('[CHATS-PAGE] Sample conversation from API:', {
+          id: response.conversations[0].id,
+          last_message: response.conversations[0].last_message?.substring(0, 30),
+          last_message_sender: response.conversations[0].last_message_sender,
+          sender: response.conversations[0].sender,
+          allFields: Object.keys(response.conversations[0])
+        })
+      }
+      
       // Sort conversations by most recent message time
       const sortedConversations = response.conversations.sort((a: any, b: any) => {
         const timeA = new Date(a.last_message_time || 0).getTime()

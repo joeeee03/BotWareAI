@@ -254,14 +254,27 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
         setHasMoreMessages(response.messages.length === 50)
         
         // Restaurar posición de scroll después de que se rendericen los mensajes
-        requestAnimationFrame(() => {
-          if (viewport) {
-            const scrollHeightAfter = viewport.scrollHeight
-            const scrollDiff = scrollHeightAfter - scrollHeightBefore
-            viewport.scrollTop = scrollTopBefore + scrollDiff
-            console.log('[MESSAGE-THREAD] 📍 Restored scroll position')
-          }
-        })
+        // Usar setTimeout con múltiples requestAnimationFrame para asegurar el render completo
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (viewport) {
+                const scrollHeightAfter = viewport.scrollHeight
+                const scrollDiff = scrollHeightAfter - scrollHeightBefore
+                const newScrollTop = scrollTopBefore + scrollDiff
+                viewport.scrollTop = newScrollTop
+                console.log('[MESSAGE-THREAD] 📍 Restored scroll:', {
+                  scrollHeightBefore,
+                  scrollHeightAfter,
+                  scrollDiff,
+                  scrollTopBefore,
+                  newScrollTop,
+                  currentScrollTop: viewport.scrollTop
+                })
+              }
+            })
+          })
+        }, 50)
       } else {
         setHasMoreMessages(false)
       }
