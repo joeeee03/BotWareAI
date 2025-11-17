@@ -42,7 +42,7 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
   const [isSending, setIsSending] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
-  const [oldestMessageId, setOldestMessageId] = useState<number | null>(null)
+  const [currentOffset, setCurrentOffset] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const userCountry = getUserCountry()
@@ -194,19 +194,21 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
 
   const loadMessages = async (reset = true) => {
     setIsLoading(true)
+    setCurrentOffset(0)
     
     console.log('[MESSAGE-THREAD] 🔄 Loading initial 50 messages for conversation:', conversation.id)
     
     try {
-      const response = await apiClient.getMessages(conversation.id.toString(), 50)
+      const response = await apiClient.getMessages(conversation.id.toString(), 50, 0)
       console.log('[MESSAGE-THREAD] ✅ Loaded', response.messages.length, 'messages from API')
       
       if (response.messages.length > 0) {
         setMessages(response.messages)
-        setOldestMessageId(response.messages[0]?.id)
+        setCurrentOffset(50)
         setHasMoreMessages(response.messages.length === 50)
       } else {
         setMessages([])
+        setCurrentOffset(0)
         setHasMoreMessages(false)
       }
       
@@ -228,27 +230,28 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
   }
 
   const loadMoreMessages = async () => {
-    if (isLoadingMore || !hasMoreMessages || !oldestMessageId) return
+    if (isLoadingMore || !hasMoreMessages) return
     
     setIsLoadingMore(true)
-    console.log('[MESSAGE-THREAD] 🔄 Loading more messages before ID:', oldestMessageId)
+    console.log('[MESSAGE-THREAD] 🔄 Loading more messages from offset:', currentOffset)
     
     try {
       const response = await apiClient.getMessages(
         conversation.id.toString(), 
         50, 
-        oldestMessageId.toString()
+        currentOffset
       )
       console.log('[MESSAGE-THREAD] ✅ Loaded', response.messages.length, 'older messages')
       
       if (response.messages.length > 0) {
         setMessages((prev) => [...response.messages, ...prev])
-        setOldestMessageId(response.messages[0]?.id)
+        setCurrentOffset(prev => prev + response.messages.length)
         setHasMoreMessages(response.messages.length === 50)
       } else {
         setHasMoreMessages(false)
       }
     } catch (error: any) {
+      console.error('[MESSAGE-THREAD] Error loading more messages:', error)
       toast({
         title: "Error al cargar más mensajes",
         description: error.message,
@@ -276,7 +279,7 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
     
     viewport.addEventListener('scroll', handleScroll)
     return () => viewport.removeEventListener('scroll', handleScroll)
-  }, [hasMoreMessages, isLoadingMore, oldestMessageId])
+  }, [hasMoreMessages, isLoadingMore, currentOffset])
 
   const scrollToBottom = (instant = false) => {
     if (!scrollRef.current) {

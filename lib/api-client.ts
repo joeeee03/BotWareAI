@@ -96,9 +96,8 @@ export class ApiClient {
     return this.request(`/api/conversations?limit=${limit}&offset=${offset}`)
   }
 
-  async getMessages(conversationId: string, limit = 100, cursor?: string) {
-    const cursorParam = cursor ? `&cursor=${cursor}` : ""
-    return this.request(`/api/conversations/${conversationId}/messages?limit=${limit}${cursorParam}`)
+  async getMessages(conversationId: string, limit = 100, offset = 0) {
+    return this.request(`/api/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`)
   }
 
   async sendMessage(conversationId: string, message: string, tempId?: string) {
