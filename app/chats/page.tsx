@@ -118,24 +118,36 @@ export default function ChatsPage() {
     try {
       const response = await apiClient.getConversations()
       
-      // Debug: ver qué campos vienen del backend
-      if (response.conversations.length > 0) {
-        console.log('[CHATS-PAGE] Sample conversation from API:', {
-          id: response.conversations[0].id,
-          last_message: response.conversations[0].last_message?.substring(0, 30),
-          last_message_sender: response.conversations[0].last_message_sender,
-          sender: response.conversations[0].sender,
-          allFields: Object.keys(response.conversations[0])
-        })
-      }
-      
       // Sort conversations by most recent message time
       const sortedConversations = response.conversations.sort((a: any, b: any) => {
         const timeA = new Date(a.last_message_time || 0).getTime()
         const timeB = new Date(b.last_message_time || 0).getTime()
         return timeB - timeA
       })
-      setConversations(sortedConversations)
+      
+      // Obtener el último mensaje de cada conversación para tener el sender
+      console.log('[CHATS-PAGE] Fetching last message sender for all conversations...')
+      const conversationsWithSender = await Promise.all(
+        sortedConversations.map(async (conv: any) => {
+          try {
+            // Obtener solo el último mensaje (limit=1)
+            const messagesResponse = await apiClient.getMessages(conv.id.toString(), 1, 0)
+            if (messagesResponse.messages.length > 0) {
+              const lastMessage = messagesResponse.messages[0]
+              console.log('[CHATS-PAGE] Conv', conv.id, 'last sender:', lastMessage.sender)
+              return {
+                ...conv,
+                last_message_sender: lastMessage.sender
+              }
+            }
+          } catch (error) {
+            console.error('[CHATS-PAGE] Error fetching last message for conv', conv.id, error)
+          }
+          return conv
+        })
+      )
+      
+      setConversations(conversationsWithSender)
     } catch (error: any) {
       toast({
         title: "Error al cargar conversaciones",
