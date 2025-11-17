@@ -85,13 +85,25 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         console.log("✅ [MESSAGE-THREAD] Adding message to current conversation")
         console.log("💬 [MESSAGE-THREAD] Message content being added:", newMessage.message)
         setMessages((prev) => {
-          // Check if message already exists by ID (real messages only, ignore temp IDs)
-          // Real messages have positive IDs, temp messages have negative IDs
+          // Check if message already exists by ID or if there's a pending message for it
           const existsById = newMessage.id && newMessage.id > 0 && prev.some((m) => m.id === newMessage.id)
           const existsByTempId = newMessage.tempId && prev.some((m) => m.tempId === newMessage.tempId)
+          // NUEVO: También verificar si hay un mensaje pendiente con el mismo contenido
+          const hasPendingWithSameContent = prev.some((m) => 
+            m.isPending && 
+            m.message === newMessage.message && 
+            m.sender === newMessage.sender &&
+            // Solo si el mensaje es reciente (menos de 10 segundos)
+            Math.abs(new Date(m.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 10000
+          )
           
-          if (existsById || existsByTempId) {
-            console.log("⚠️ [MESSAGE-THREAD] Message already exists, skipping", { existsById, existsByTempId, messageId: newMessage.id })
+          if (existsById || existsByTempId || hasPendingWithSameContent) {
+            console.log("⚠️ [MESSAGE-THREAD] Message already exists or is pending, skipping", { 
+              existsById, 
+              existsByTempId, 
+              hasPendingWithSameContent,
+              messageId: newMessage.id 
+            })
             return prev
           }
           
@@ -128,11 +140,21 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       console.log("✅ [MESSAGE-THREAD] Message sent acknowledgment:", tempId, message)
       setMessages((prev) => {
         // Replace temporary message with real message from DB
-        const hasTemp = prev.some(m => m.tempId === tempId)
-        if (!hasTemp) {
-          console.log("⚠️ [MESSAGE-THREAD] Temp message not found, adding real message")
+        const tempIndex = prev.findIndex(m => m.tempId === tempId)
+        
+        if (tempIndex === -1) {
+          console.log("⚠️ [MESSAGE-THREAD] Temp message not found")
+          // Verificar si el mensaje real ya existe
+          const realExists = prev.some(m => m.id === message.id)
+          if (realExists) {
+            console.log("⚠️ [MESSAGE-THREAD] Real message already exists, ignoring ack")
+            return prev
+          }
+          console.log("➕ [MESSAGE-THREAD] Adding real message from ack")
           return [...prev, { ...message, isPending: false }]
         }
+        
+        console.log("🔄 [MESSAGE-THREAD] Replacing temp message with real message")
         return prev.map((m) => 
           m.tempId === tempId 
             ? { ...message, isPending: false }
@@ -491,12 +513,14 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
               >
                 <div
                   className={cn(
-                    "max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 shadow-sm relative",
+                    "max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 shadow-sm relative transition-all duration-300",
                     // Professional styling: bot -> blue, user -> slate/white
                     message.sender === "bot" 
-                      ? "bg-blue-600 text-white" 
+                      ? message.isPending
+                        ? "bg-blue-700/70 text-white/90" // Más oscuro cuando está pendiente
+                        : "bg-blue-600 text-white"
                       : "dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 bg-blue-50 text-slate-800 border border-blue-200",
-                    message.isPending && "opacity-60",
+                    message.isPending && "opacity-80",
                   )}
                 >
                   <div className="text-sm sm:text-base break-words pr-12 sm:pr-14">
