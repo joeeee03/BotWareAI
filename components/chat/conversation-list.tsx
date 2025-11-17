@@ -190,11 +190,11 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
     // Use h-full so the container inherits the parent's height; parent (page) is h-screen
     <div ref={ref as any} tabIndex={0} className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b dark:border-slate-700/50 border-blue-200/50 dark:bg-slate-800/50 bg-white/95 backdrop-blur-xl supports-[backdrop-filter]:dark:bg-slate-800/30 supports-[backdrop-filter]:bg-white/90">
+      <div className="p-4 border-b dark:border-slate-700/50 border-blue-200/50 dark:bg-slate-800/50 bg-white/95 backdrop-blur-xl supports-[backdrop-filter]:dark:bg-slate-800/30 supports-[backdrop-filter]:bg-white/90 animate-fadeIn">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold dark:text-slate-100 text-slate-800 flex items-center gap-2">
-              <svg className="h-6 w-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h1 className="text-xl font-semibold dark:text-slate-100 text-slate-800 flex items-center gap-2 animate-slideIn">
+              <svg className="h-6 w-6 text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               Chats
@@ -377,17 +377,17 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
           </div>
         </div>
 
-        <div className="mt-4">
-          <div className="relative">
+        <div className="mt-4 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+          <div className="relative group">
             <Input
               placeholder="Buscar conversaciones..."
               value={query}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
               aria-label="Search conversations"
-              className="pl-10 dark:bg-slate-700/30 bg-blue-50/50 dark:border-slate-600/50 border-blue-200/50 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm transition-all duration-200"
+              className="pl-10 dark:bg-slate-700/30 bg-blue-50/50 dark:border-slate-600/50 border-blue-200/50 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus:border-blue-500/50 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.01]"
             />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-              <svg className="h-4 w-4 dark:text-slate-400 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 group-hover:scale-110 transition-transform duration-200">
+              <svg className="h-4 w-4 dark:text-slate-400 text-slate-500 group-focus-within:text-blue-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -396,7 +396,7 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
       </div>
 
       {/* Conversation list */}
-      <ScrollArea className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1 overflow-y-auto smooth-scrollbar">
         <div className="divide-y dark:divide-slate-700 divide-blue-100">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -416,18 +416,20 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                 key={conversation.id}
                 onClick={() => onSelectConversation(conversation)}
                 className={cn(
-                  "w-full p-3 flex items-center gap-3 dark:hover:bg-slate-700/30 hover:bg-blue-50/50 transition-all duration-200 text-left relative",
-                  selectedConversation?.id === conversation.id && "dark:bg-slate-700/50 bg-blue-100/70 border-r-2 border-blue-500",
+                  "w-full p-3 flex items-center gap-3 dark:hover:bg-slate-700/30 hover:bg-blue-50/50 transition-all duration-200 text-left relative group",
+                  "hover:scale-[1.02] hover:shadow-md active:scale-[0.98]",
+                  selectedConversation?.id === conversation.id && "dark:bg-slate-700/50 bg-blue-100/70 border-r-4 border-blue-500 shadow-lg scale-[1.01]",
                 )}
+                style={{ animationDelay: `${filtered.indexOf(conversation) * 30}ms` }}
               >
-                <Avatar className="h-12 w-12 flex-shrink-0">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                <Avatar className="h-12 w-12 flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:ring-2 group-hover:ring-blue-400/50">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold transition-all duration-300">
                     {getInitials(conversation.customer_name || conversation.customer_phone)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium truncate dark:text-slate-100 text-slate-800 text-sm max-w-[140px]">
+                    <h3 className="font-medium truncate dark:text-slate-100 text-slate-800 text-sm max-w-[140px] transition-colors duration-200 group-hover:text-blue-500">
                       {conversation.customer_name || conversation.customer_phone}
                     </h3>
                     {conversation.last_message_time && (
@@ -440,8 +442,8 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                     {conversation.last_message ? stripWhatsAppFormatting(conversation.last_message) : "Sin mensajes aún"}
                   </p>
                   {conversation.unread_count > 0 && (
-                    <div className="absolute right-4 top-4">
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-500 rounded-full">
+                    <div className="absolute right-4 top-4 animate-fadeIn">
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-500 rounded-full animate-pulse shadow-lg">
                         {conversation.unread_count}
                       </span>
                     </div>

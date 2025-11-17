@@ -164,7 +164,8 @@ export default function ChatsPage() {
         ${selectedConversation ? 'hidden md:flex' : 'flex'} 
         w-full md:w-96 border-r dark:border-slate-700/50 border-blue-200/50 
         flex-shrink-0 dark:bg-slate-800/30 bg-white/90 backdrop-blur-xl 
-        relative z-10 shadow-2xl
+        relative z-20 shadow-2xl transition-all duration-300 ease-out
+        animate-[slideIn_0.5s_ease-out]
       `}>
         <ConversationList
           ref={sidebarRef}
@@ -179,10 +180,10 @@ export default function ChatsPage() {
       <div className={`
         ${selectedConversation ? 'flex' : 'hidden md:flex'} 
         flex-1 flex-col dark:bg-slate-900/20 bg-white/50 backdrop-blur-sm 
-        relative z-10
+        relative z-10 transition-all duration-300 ease-out
       `}>
         {selectedConversation ? (
-          <div className="h-full animate-in slide-in-from-right-4 duration-300">
+          <div className="h-full transition-all duration-500 ease-out animate-[slideInRight_0.5s_ease-out]">
             <MessageThread
               conversation={selectedConversation}
               onConversationUpdate={loadConversations}
