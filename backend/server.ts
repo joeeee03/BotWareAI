@@ -131,6 +131,20 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() })
 })
 
+// Root route for Railway healthcheck
+app.get("/", (req, res) => {
+  res.json({ 
+    message: "WhatsApp Backend API", 
+    status: "running",
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: "/health",
+      api: "/api/*",
+      socket: "/socket.io"
+    }
+  })
+})
+
 console.log("[v0] Health check endpoint registered")
 
 // Main async initialization function
