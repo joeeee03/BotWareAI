@@ -35,27 +35,40 @@ const proxy = http.createServer((req, res) => {
   req.pipe(proxyReq);
 });
 
-// WebSocket support
+// WebSocket support (arreglado para Socket.IO)
 proxy.on('upgrade', (req, socket, head) => {
   const isBackend = (req.url || '').startsWith('/socket.io');
   const targetPort = isBackend ? BACKEND_PORT : FRONTEND_PORT;
   
-  const proxyReq = http.request({
-    hostname: 'localhost',
-    port: targetPort,
-    path: req.url,
-    headers: req.headers
+  console.log(`[Proxy] WebSocket upgrade: ${req.url} -> port ${targetPort}`);
+  
+  // Conectar directamente al backend/frontend
+  const net = require('net');
+  const proxySocket = net.connect(targetPort, 'localhost', () => {
+    // Reenviar la solicitud HTTP original
+    proxySocket.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`);
+    
+    Object.keys(req.headers).forEach(key => {
+      proxySocket.write(`${key}: ${req.headers[key]}\r\n`);
+    });
+    
+    proxySocket.write('\r\n');
+    proxySocket.write(head);
+    
+    // Pipe bidireccional
+    socket.pipe(proxySocket);
+    proxySocket.pipe(socket);
   });
   
-  proxyReq.on('upgrade', (proxyRes, proxySocket) => {
-    socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
-                 'Upgrade: websocket\r\n' +
-                 'Connection: Upgrade\r\n\r\n');
-    proxySocket.pipe(socket).pipe(proxySocket);
+  proxySocket.on('error', (err) => {
+    console.error('[Proxy] WebSocket error:', err.message);
+    socket.end();
   });
   
-  proxyReq.on('error', () => socket.end());
-  proxyReq.end();
+  socket.on('error', (err) => {
+    console.error('[Proxy] Client socket error:', err.message);
+    proxySocket.end();
+  });
 });
 
 // Iniciar proxy PRIMERO

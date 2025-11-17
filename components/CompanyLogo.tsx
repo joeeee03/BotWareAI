@@ -6,8 +6,8 @@ import { useState } from 'react'
 export function CompanyLogo() {
   const [logoError, setLogoError] = useState(false)
 
-  // Intenta cargar el logo. Si no existe, muestra un logo por defecto
-  const logoPath = '/logos/company-logo.png'
+  // Logo correcto del proyecto
+  const logoPath = '/icon-light-32x32.png'
 
   return (
     <div className="flex items-center justify-center mb-6">
