@@ -150,11 +150,11 @@ async function processIncomingMessage(params: {
     // Encrypt message before saving to database
     const encryptedMessage = encrypt(message)
 
-    // Insert message as sender='bot' with circuit breaker
+    // Insert message as sender='user' (customer sent this message) with circuit breaker
     const messageResult = await withDatabaseCircuitBreaker(() =>
       pool.query(
         `INSERT INTO messages (conversation_id, bot_id, sender, message, created_at)
-         VALUES ($1, $2, 'bot', $3, NOW())
+         VALUES ($1, $2, 'user', $3, NOW())
          RETURNING id, conversation_id, bot_id, sender, message, created_at`,
         [conversationId, bot.id, encryptedMessage],
       )
