@@ -190,70 +190,75 @@ export function isSameDayInTimezone(utcDate1: string | Date, utcDate2: string | 
   return dateStr1 === dateStr2
 }
 
-// Helper function to get date parts in a specific timezone
-function getDatePartsInTimezone(date: Date, timezone: string): { year: number; month: number; day: number } {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  })
-  
-  const parts = formatter.formatToParts(date)
-  const year = parseInt(parts.find(p => p.type === 'year')?.value || '0')
-  const month = parseInt(parts.find(p => p.type === 'month')?.value || '0')
-  const day = parseInt(parts.find(p => p.type === 'day')?.value || '0')
-  
-  return { year, month, day }
-}
-
 // Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
 export function formatDateSeparator(utcDate: string | Date, countryCode: string): string {
   // Parse the UTC date from the database
   const messageDate = typeof utcDate === 'string' ? new Date(utcDate) : utcDate
   const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
   
-  // Get the current time
-  const now = new Date()
+  // Get current UTC time
+  const nowUtc = new Date()
   
-  // Get date parts in the target timezone
-  const messageParts = getDatePartsInTimezone(messageDate, timezone)
-  const todayParts = getDatePartsInTimezone(now, timezone)
+  // Convert message date to target timezone and extract date parts
+  const messageFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  const messageParts = messageFormatter.formatToParts(messageDate)
+  const messageYear = parseInt(messageParts.find(p => p.type === 'year')?.value || '0')
+  const messageMonth = parseInt(messageParts.find(p => p.type === 'month')?.value || '0')
+  const messageDay = parseInt(messageParts.find(p => p.type === 'day')?.value || '0')
   
-  // Create comparison strings
-  const messageDateStr = `${messageParts.year}-${String(messageParts.month).padStart(2, '0')}-${String(messageParts.day).padStart(2, '0')}`
-  const todayDateStr = `${todayParts.year}-${String(todayParts.month).padStart(2, '0')}-${String(todayParts.day).padStart(2, '0')}`
+  // Convert current UTC time to target timezone and extract date parts
+  const todayFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  const todayParts = todayFormatter.formatToParts(nowUtc)
+  const todayYear = parseInt(todayParts.find(p => p.type === 'year')?.value || '0')
+  const todayMonth = parseInt(todayParts.find(p => p.type === 'month')?.value || '0')
+  const todayDay = parseInt(todayParts.find(p => p.type === 'day')?.value || '0')
   
   console.log('[DATE-SEPARATOR] Debug:', { 
     utcInput: typeof utcDate === 'string' ? utcDate : utcDate.toISOString(),
-    messageDateParsed: messageDate.toISOString(),
-    messageParts,
-    todayParts,
-    messageDateStr, 
-    todayDateStr,
+    messageDateUTC: messageDate.toISOString(),
+    nowUTC: nowUtc.toISOString(),
+    messageInTimezone: `${messageYear}-${String(messageMonth).padStart(2, '0')}-${String(messageDay).padStart(2, '0')}`,
+    todayInTimezone: `${todayYear}-${String(todayMonth).padStart(2, '0')}-${String(todayDay).padStart(2, '0')}`,
     timezone,
     countryCode
   })
   
-  // Check if message is from today
-  if (messageDateStr === todayDateStr) {
+  // Check if message is from today (same year, month, and day)
+  if (messageYear === todayYear && messageMonth === todayMonth && messageDay === todayDay) {
     console.log('[DATE-SEPARATOR] ✅ Es HOY')
     return 'Hoy'
   }
   
-  // Get yesterday's date in target timezone
-  const yesterdayTime = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  const yesterdayParts = getDatePartsInTimezone(yesterdayTime, timezone)
-  const yesterdayDateStr = `${yesterdayParts.year}-${String(yesterdayParts.month).padStart(2, '0')}-${String(yesterdayParts.day).padStart(2, '0')}`
+  // Calculate yesterday in UTC, then convert to target timezone
+  const yesterdayUtc = new Date(nowUtc.getTime() - 24 * 60 * 60 * 1000)
+  const yesterdayFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  const yesterdayParts = yesterdayFormatter.formatToParts(yesterdayUtc)
+  const yesterdayYear = parseInt(yesterdayParts.find(p => p.type === 'year')?.value || '0')
+  const yesterdayMonth = parseInt(yesterdayParts.find(p => p.type === 'month')?.value || '0')
+  const yesterdayDay = parseInt(yesterdayParts.find(p => p.type === 'day')?.value || '0')
   
   console.log('[DATE-SEPARATOR] Yesterday check:', {
-    yesterdayParts,
-    yesterdayDateStr,
-    matches: messageDateStr === yesterdayDateStr
+    yesterdayInTimezone: `${yesterdayYear}-${String(yesterdayMonth).padStart(2, '0')}-${String(yesterdayDay).padStart(2, '0')}`,
+    matches: messageYear === yesterdayYear && messageMonth === yesterdayMonth && messageDay === yesterdayDay
   })
   
-  // Check if message is from yesterday
-  if (messageDateStr === yesterdayDateStr) {
+  // Check if message is from yesterday (same year, month, and day)
+  if (messageYear === yesterdayYear && messageMonth === yesterdayMonth && messageDay === yesterdayDay) {
     console.log('[DATE-SEPARATOR] ✅ Es AYER')
     return 'Ayer'
   }
