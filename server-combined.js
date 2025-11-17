@@ -1,16 +1,36 @@
-// Combined server that serves both backend API and Next.js frontend
+// Combined server with HTTP proxy for Socket.IO and API
 import { spawn } from 'child_process';
+import http from 'http';
+import httpProxy from 'http-proxy';
 
 console.log('[Combined Server] 🚀 Starting backend and frontend...');
 
-const FRONTEND_PORT = process.env.PORT || '3000';
+const PUBLIC_PORT = process.env.PORT || '3000';
 const BACKEND_PORT = '3001';
+const FRONTEND_PORT = '8080';
 
-console.log(`[Combined Server] Frontend will run on port ${FRONTEND_PORT}`);
+console.log(`[Combined Server] Public proxy will run on port ${PUBLIC_PORT}`);
 console.log(`[Combined Server] Backend will run on port ${BACKEND_PORT}`);
+console.log(`[Combined Server] Frontend will run on port ${FRONTEND_PORT}`);
 
 let backendProcess;
 let frontendProcess;
+
+// Create proxy server
+const proxy = httpProxy.createProxyServer({
+  ws: true, // Enable WebSocket proxying
+  changeOrigin: true,
+  timeout: 60000
+});
+
+// Handle proxy errors
+proxy.on('error', (err, req, res) => {
+  console.error('[PROXY] ❌ Error:', err.message);
+  if (res && !res.headersSent) {
+    res.writeHead(502, { 'Content-Type': 'text/plain' });
+    res.end('Bad Gateway');
+  }
+});
 
 // Start backend first
 console.log('[Combined Server] 📡 Starting backend...');
@@ -40,12 +60,10 @@ backendProcess.on('exit', (code) => {
 setTimeout(() => {
   console.log('[Combined Server] 🌐 Starting frontend (Next.js standalone)...');
   
-  // Set backend URL for Next.js rewrites
   const env = {
     ...process.env,
     PORT: FRONTEND_PORT,
     NODE_ENV: 'production',
-    NEXT_PUBLIC_BACKEND_URL: `http://localhost:${BACKEND_PORT}`,
     HOSTNAME: '0.0.0.0'
   };
   
@@ -69,8 +87,40 @@ setTimeout(() => {
     }
   });
 
-  console.log('[Combined Server] ✅ Both services started successfully!');
-  console.log(`[Combined Server] 🌍 Access your app at http://localhost:${FRONTEND_PORT}`);
+  // Start proxy server after both services are up
+  setTimeout(() => {
+    console.log('[Combined Server] 🔀 Starting HTTP proxy...');
+    
+    const proxyServer = http.createServer((req, res) => {
+      const url = req.url || '/';
+      
+      // Proxy Socket.IO and API requests to backend
+      if (url.startsWith('/socket.io') || url.startsWith('/api/')) {
+        console.log(`[PROXY] → Backend: ${req.method} ${url}`);
+        proxy.web(req, res, { target: `http://localhost:${BACKEND_PORT}` });
+      } else {
+        // Proxy everything else to Next.js frontend
+        proxy.web(req, res, { target: `http://localhost:${FRONTEND_PORT}` });
+      }
+    });
+
+    // Handle WebSocket upgrade for Socket.IO
+    proxyServer.on('upgrade', (req, socket, head) => {
+      const url = req.url || '/';
+      console.log(`[PROXY] → WebSocket upgrade: ${url}`);
+      
+      if (url.startsWith('/socket.io')) {
+        proxy.ws(req, socket, head, { target: `http://localhost:${BACKEND_PORT}` });
+      } else {
+        proxy.ws(req, socket, head, { target: `http://localhost:${FRONTEND_PORT}` });
+      }
+    });
+
+    proxyServer.listen(PUBLIC_PORT, '0.0.0.0', () => {
+      console.log('[Combined Server] ✅ All services started successfully!');
+      console.log(`[Combined Server] 🌍 Access your app at http://localhost:${PUBLIC_PORT}`);
+    });
+  }, 3000);
 }, 5000);
 
 // Cleanup function
