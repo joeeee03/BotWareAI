@@ -183,11 +183,34 @@ export function isSameDay(date1: Date, date2: Date): boolean {
 export function isSameDayInTimezone(utcDate1: string | Date, utcDate2: string | Date, countryCode: string): boolean {
   const date1 = typeof utcDate1 === 'string' ? new Date(utcDate1) : utcDate1
   const date2 = typeof utcDate2 === 'string' ? new Date(utcDate2) : utcDate2
+  const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
   
-  const dateStr1 = getDateString(date1, countryCode)
-  const dateStr2 = getDateString(date2, countryCode)
+  // Get date parts for first date in target timezone
+  const formatter1 = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  const parts1 = formatter1.formatToParts(date1)
+  const year1 = parseInt(parts1.find(p => p.type === 'year')?.value || '0')
+  const month1 = parseInt(parts1.find(p => p.type === 'month')?.value || '0')
+  const day1 = parseInt(parts1.find(p => p.type === 'day')?.value || '0')
   
-  return dateStr1 === dateStr2
+  // Get date parts for second date in target timezone
+  const formatter2 = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  const parts2 = formatter2.formatToParts(date2)
+  const year2 = parseInt(parts2.find(p => p.type === 'year')?.value || '0')
+  const month2 = parseInt(parts2.find(p => p.type === 'month')?.value || '0')
+  const day2 = parseInt(parts2.find(p => p.type === 'day')?.value || '0')
+  
+  // Compare year, month, and day
+  return year1 === year2 && month1 === month2 && day1 === day2
 }
 
 // Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
