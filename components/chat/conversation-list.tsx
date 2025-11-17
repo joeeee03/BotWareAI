@@ -427,30 +427,38 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                     {getInitials(conversation.customer_name || conversation.customer_phone)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                  <div className="flex items-baseline justify-between gap-2 pr-1">
-                    <h3 className="font-medium dark:text-slate-100 text-slate-800 text-sm transition-colors duration-200 group-hover:text-blue-500 truncate flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-semibold dark:text-slate-100 text-slate-800 text-sm transition-colors duration-200 group-hover:text-blue-500 truncate flex-1 min-w-0">
                       {conversation.customer_name || conversation.customer_phone}
                     </h3>
                     {conversation.last_message_time && (
-                      <span className="text-[10px] dark:text-slate-400 text-slate-500 whitespace-nowrap flex-shrink-0 ml-2">
+                      <span className="text-[11px] dark:text-slate-400 text-slate-500 whitespace-nowrap flex-shrink-0">
                         {formatConversationTime(conversation.last_message_time, userCountry)}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs dark:text-slate-400 text-slate-600 truncate flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs dark:text-slate-400 text-slate-600 line-clamp-1 flex-1 min-w-0">
                       {conversation.last_message ? (
                         <>
-                          {conversation.last_message_sender === 'bot' && (
-                            <span className="font-bold">Tú: </span>
-                          )}
+                          {(() => {
+                            const showPrefix = conversation.last_message_sender === 'bot' || conversation.last_message_sender === 'assistant'
+                            if (filtered.indexOf(conversation) === 0) {
+                              console.log('[CONVERSATION-LIST] First conversation sender:', {
+                                sender: conversation.last_message_sender,
+                                showPrefix,
+                                message: conversation.last_message?.substring(0, 30)
+                              })
+                            }
+                            return showPrefix ? <span className="font-bold dark:text-slate-300 text-slate-700">Tú: </span> : null
+                          })()}
                           {stripWhatsAppFormatting(conversation.last_message)}
                         </>
                       ) : "Sin mensajes aún"}
                     </p>
                     {conversation.unread_count > 0 && (
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white bg-blue-500 rounded-full animate-pulse shadow-lg flex-shrink-0">
+                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold leading-none text-white bg-blue-500 rounded-full shadow-lg flex-shrink-0">
                         {conversation.unread_count}
                       </span>
                     )}

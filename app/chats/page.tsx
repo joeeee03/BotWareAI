@@ -59,10 +59,16 @@ export default function ChatsPage() {
       setConversations(prev => {
         const updatedConversations = prev.map(conv => {
           if (conv.id === data.conversationId) {
+            console.log('[CHATS-PAGE] Updating conversation with:', {
+              lastMessage: data.lastMessage,
+              lastMessageSender: data.lastMessageSender,
+              sender: data.sender
+            })
             return {
               ...conv,
               last_message: data.lastMessage,
-              last_message_time: data.lastMessageTime
+              last_message_time: data.lastMessageTime,
+              last_message_sender: data.lastMessageSender || data.sender || 'user'
             }
           }
           return conv

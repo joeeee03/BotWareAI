@@ -235,6 +235,11 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
     setIsLoadingMore(true)
     console.log('[MESSAGE-THREAD] 🔄 Loading more messages from offset:', currentOffset)
     
+    // Guardar posición actual antes de cargar
+    const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement
+    const scrollHeightBefore = viewport?.scrollHeight || 0
+    const scrollTopBefore = viewport?.scrollTop || 0
+    
     try {
       const response = await apiClient.getMessages(
         conversation.id.toString(), 
@@ -247,6 +252,16 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
         setMessages((prev) => [...response.messages, ...prev])
         setCurrentOffset(prev => prev + response.messages.length)
         setHasMoreMessages(response.messages.length === 50)
+        
+        // Restaurar posición de scroll después de que se rendericen los mensajes
+        requestAnimationFrame(() => {
+          if (viewport) {
+            const scrollHeightAfter = viewport.scrollHeight
+            const scrollDiff = scrollHeightAfter - scrollHeightBefore
+            viewport.scrollTop = scrollTopBefore + scrollDiff
+            console.log('[MESSAGE-THREAD] 📍 Restored scroll position')
+          }
+        })
       } else {
         setHasMoreMessages(false)
       }
