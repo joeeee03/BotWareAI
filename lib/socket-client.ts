@@ -19,7 +19,8 @@ export const initializeSocket = (token: string): Socket => {
   currentToken = token
 
   // Conectar directamente al backend
-  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001"
+  // En producción (Railway), NEXT_PUBLIC_SOCKET_URL estará vacío para usar el mismo dominio
+  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || (typeof window !== 'undefined' && window.location ? window.location.origin : "http://localhost:3001")
   
   console.log('🔌 [SOCKET] Connecting to:', socketUrl)
   

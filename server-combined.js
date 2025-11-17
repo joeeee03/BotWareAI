@@ -20,8 +20,8 @@ const frontendEnv = {
   PORT: FRONTEND_PORT,
   NODE_ENV: 'production',
   HOSTNAME: '0.0.0.0',
-  // Frontend usa rutas relativas (mismo dominio)
-  NEXT_PUBLIC_API_URL: '/api',
+  // Frontend usa rutas relativas (mismo dominio) - NO agregar /api porque ya está en las rutas
+  NEXT_PUBLIC_API_URL: '',
   NEXT_PUBLIC_SOCKET_URL: ''
 };
 
@@ -49,9 +49,9 @@ setTimeout(() => {
   });
 }, 3000);
 
-// Crear proxy simple después de que ambos servicios estén listos
+// Crear proxy con soporte WebSocket después de que ambos servicios estén listos
 setTimeout(() => {
-  console.log('[Combined] 🔀 Starting proxy...');
+  console.log('[Combined] 🔀 Starting proxy with WebSocket support...');
   
   import('http').then(({ default: http }) => {
     const proxyServer = http.createServer((req, res) => {
@@ -88,6 +88,47 @@ setTimeout(() => {
       });
       
       req.pipe(proxyReq);
+    });
+    
+    // Manejar WebSocket upgrade para Socket.IO
+    proxyServer.on('upgrade', (req, socket, head) => {
+      const url = req.url || '/';
+      const targetPort = url.startsWith('/socket.io') ? BACKEND_PORT : FRONTEND_PORT;
+      
+      console.log(`[Proxy] → WebSocket upgrade: ${url} to port ${targetPort}`);
+      
+      const options = {
+        hostname: 'localhost',
+        port: targetPort,
+        path: url,
+        headers: req.headers
+      };
+      
+      const proxyReq = http.request(options);
+      
+      proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
+        proxySocket.on('error', (err) => {
+          console.error('[Proxy] WebSocket error:', err.message);
+          socket.end();
+        });
+        
+        socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
+                     'Upgrade: websocket\r\n' +
+                     'Connection: Upgrade\r\n' +
+                     '\r\n');
+        
+        proxySocket.pipe(socket);
+        socket.pipe(proxySocket);
+        
+        proxySocket.write(proxyHead);
+      });
+      
+      proxyReq.on('error', (err) => {
+        console.error('[Proxy] WebSocket upgrade error:', err.message);
+        socket.end();
+      });
+      
+      proxyReq.end();
     });
     
     // Usar el puerto público para el proxy

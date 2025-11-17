@@ -1,7 +1,18 @@
 // API client - SIMPLE version
 
 // API URL - Conectar directamente al backend
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+// En producción (Railway), NEXT_PUBLIC_API_URL estará vacío para usar el mismo dominio
+const getApiUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.origin;
+  }
+  return "http://localhost:3001";
+};
+
+const API_URL = getApiUrl();
 
 export class ApiClient {
   private token: string | null = null
