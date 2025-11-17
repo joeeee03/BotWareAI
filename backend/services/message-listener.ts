@@ -17,13 +17,20 @@ export async function startMessageListener() {
     console.log('[MESSAGE-LISTENER] 🎧 Iniciando PostgreSQL LISTEN para nuevos mensajes...')
 
     // Crear cliente dedicado para LISTEN (no usar pool)
-    listenerClient = new Client({
-      host: process.env.DB_HOST || 'localhost',
-      port: Number.parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME || 'whatsapp_db',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD,
-    })
+    // Usar DATABASE_URL si está disponible (Railway), sino variables individuales
+    const connectionConfig = process.env.DATABASE_URL
+      ? { connectionString: process.env.DATABASE_URL }
+      : {
+          host: process.env.DB_HOST || 'localhost',
+          port: Number.parseInt(process.env.DB_PORT || '5432'),
+          database: process.env.DB_NAME || 'whatsapp_db',
+          user: process.env.DB_USER || 'postgres',
+          password: process.env.DB_PASSWORD,
+        }
+
+    console.log('[MESSAGE-LISTENER] Conectando a PostgreSQL:', process.env.DATABASE_URL ? 'usando DATABASE_URL' : 'usando variables individuales')
+    
+    listenerClient = new Client(connectionConfig)
 
     await listenerClient.connect()
     console.log('[MESSAGE-LISTENER] ✅ Cliente PostgreSQL conectado para LISTEN')
