@@ -150,7 +150,7 @@ export default function ChatsPage() {
 
   return (
     // Professional chat interface with mobile-first responsive design
-    <div className="h-screen overflow-hidden flex bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 from-blue-50 via-white to-blue-100 relative">
+    <div className="h-screen flex bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 from-blue-50 via-white to-blue-100 relative overflow-hidden">
       {/* Background pattern */}
       <div className="absolute inset-0 dark:opacity-5 opacity-20">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10"></div>
@@ -162,10 +162,11 @@ export default function ChatsPage() {
       {/* En móvil: se oculta cuando hay conversación seleccionada */}
       <div className={`
         ${selectedConversation ? 'hidden md:flex' : 'flex'} 
-        w-full md:w-96 border-r dark:border-slate-700/50 border-blue-200/50 
+        w-full md:w-96 md:min-w-[384px] md:max-w-[384px] 
+        border-r dark:border-slate-700/50 border-blue-200/50 
         flex-shrink-0 dark:bg-slate-800/30 bg-white/90 backdrop-blur-xl 
-        relative z-20 shadow-2xl transition-all duration-300 ease-out
-        animate-[slideIn_0.5s_ease-out]
+        z-20 shadow-2xl transition-all duration-300 ease-out
+        animate-[slideIn_0.5s_ease-out] overflow-hidden
       `}>
         <ConversationList
           ref={sidebarRef}
@@ -180,7 +181,7 @@ export default function ChatsPage() {
       <div className={`
         ${selectedConversation ? 'flex' : 'hidden md:flex'} 
         flex-1 flex-col dark:bg-slate-900/20 bg-white/50 backdrop-blur-sm 
-        relative z-10 transition-all duration-300 ease-out
+        z-10 transition-all duration-300 ease-out overflow-hidden min-w-0
       `}>
         {selectedConversation ? (
           <div className="h-full transition-all duration-500 ease-out animate-[slideInRight_0.5s_ease-out]">

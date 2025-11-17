@@ -296,7 +296,33 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center dark:bg-slate-900 bg-white">
-        <div className="dark:text-slate-400 text-slate-600">Cargando mensajes...</div>
+        <div className="flex flex-col items-center gap-4">
+          {/* Animated loader */}
+          <div className="relative">
+            {/* Outer rotating ring */}
+            <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+            {/* Inner pulsing circle */}
+            <div className="absolute inset-0 w-16 h-16 flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-full animate-pulse"></div>
+            </div>
+            {/* Center dot */}
+            <div className="absolute inset-0 w-16 h-16 flex items-center justify-center">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            </div>
+          </div>
+          
+          {/* Loading text with animation */}
+          <div className="flex items-center gap-1">
+            <span className="dark:text-slate-300 text-slate-700 font-medium animate-pulse">
+              Preparando conversación
+            </span>
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
