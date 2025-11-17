@@ -199,9 +199,23 @@ export function formatDateSeparator(utcDate: string | Date, countryCode: string)
   // Get the current time
   const now = new Date()
   
-  // Convert both dates to YYYY-MM-DD strings in the user's timezone
-  const messageDateStr = getDateString(messageDate, countryCode)
-  const todayDateStr = getDateString(now, countryCode)
+  // Get date components for message in target timezone
+  const messageFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const messageDateStr = messageFormatter.format(messageDate)
+  
+  // Get date components for today in target timezone
+  const todayFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const todayDateStr = todayFormatter.format(now)
   
   console.log('[DATE-SEPARATOR] Debug:', { 
     utcInput: typeof utcDate === 'string' ? utcDate : utcDate.toISOString(),
@@ -218,11 +232,15 @@ export function formatDateSeparator(utcDate: string | Date, countryCode: string)
     return 'Hoy'
   }
   
-  // Calculate yesterday in the user's timezone
-  // We need to get "yesterday" as it would be in the user's timezone
-  // Create a new date that is 24 hours before "now"
+  // Get yesterday's date in target timezone
   const yesterdayTime = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  const yesterdayDateStr = getDateString(yesterdayTime, countryCode)
+  const yesterdayFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const yesterdayDateStr = yesterdayFormatter.format(yesterdayTime)
   
   console.log('[DATE-SEPARATOR] Yesterday check:', {
     yesterdayDateStr,
@@ -237,14 +255,14 @@ export function formatDateSeparator(utcDate: string | Date, countryCode: string)
   
   // For older dates, format as: "Sáb 9 nov" or "Lun 21 oct"
   console.log('[DATE-SEPARATOR] ✅ Es fecha antigua, formateando...')
-  const formatter = new Intl.DateTimeFormat('es-ES', {
+  const displayFormatter = new Intl.DateTimeFormat('es-ES', {
     timeZone: timezone,
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   })
   
-  const formatted = formatter.format(messageDate)
-  // Remove commas if present: "sáb., 9 nov" -> "sáb 9 nov"
-  return formatted.replace(/\.,/g, '').replace(',', '')
+  const formatted = displayFormatter.format(messageDate)
+  // Remove commas and periods: "sáb., 9 nov" -> "sáb 9 nov"
+  return formatted.replace(/\.,/g, '').replace(/\./g, '').replace(',', '')
 }

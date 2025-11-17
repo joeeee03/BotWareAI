@@ -179,10 +179,18 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     }
   }, [conversation?.id])
 
-  // Scroll to bottom when messages change (ensures we're always at bottom)
+  // Scroll to bottom ONLY when new messages arrive (not when loading old ones)
+  // We detect new messages by checking if messages were added at the end
   useEffect(() => {
-    if (messages.length > 0 && !isLoading) {
-      console.log("📜 [MESSAGE-THREAD] Messages array changed (length:", messages.length, "), scrolling...")
+    // Skip if loading initial messages or loading more old messages
+    if (isLoading || isLoadingMore) {
+      console.log("📜 [MESSAGE-THREAD] Skipping auto-scroll - loading messages")
+      return
+    }
+    
+    // Only scroll if we have messages
+    if (messages.length > 0) {
+      console.log("📜 [MESSAGE-THREAD] Messages changed, checking if should scroll...")
       // Wait for DOM update with double RAF
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -194,7 +202,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         })
       })
     }
-  }, [messages.length, isLoading])
+  }, [messages.length, isLoading, isLoadingMore])
 
   // Only reload messages when socket reconnects after being disconnected
   useEffect(() => {
@@ -290,32 +298,32 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       console.log('[MESSAGE-THREAD] ✅ Loaded', response.messages.length, 'older messages')
       
       if (response.messages.length > 0) {
+        // Store the first visible message ID to restore position
+        const firstVisibleMessage = messages[0]
+        
         setMessages((prev) => [...response.messages, ...prev])
         setCurrentOffset(prev => prev + response.messages.length)
         setHasMoreMessages(response.messages.length === 50)
         
-        // Restaurar posición de scroll después de que se rendericen los mensajes
-        // Necesitamos esperar a que React actualice el DOM completamente
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              const scrollHeightAfter = viewport.scrollHeight
-              const heightDifference = scrollHeightAfter - scrollHeightBefore
-              const newScrollTop = scrollTopBefore + heightDifference
-              
-              console.log('[MESSAGE-THREAD] 📍 After load:', {
-                scrollHeightAfter,
-                heightDifference,
-                newScrollTop
-              })
-              
-              // Establecer la nueva posición de scroll
-              viewport.scrollTop = newScrollTop
-              
-              console.log('[MESSAGE-THREAD] 📍 Scroll restored to:', viewport.scrollTop)
-            })
+        // Wait for DOM update with a longer delay to ensure React has rendered
+        setTimeout(() => {
+          const scrollHeightAfter = viewport.scrollHeight
+          const heightDifference = scrollHeightAfter - scrollHeightBefore
+          const newScrollTop = scrollTopBefore + heightDifference
+          
+          console.log('[MESSAGE-THREAD] 📍 After load:', {
+            scrollHeightBefore,
+            scrollHeightAfter,
+            heightDifference,
+            scrollTopBefore,
+            newScrollTop
           })
-        })
+          
+          // Set the new scroll position to maintain user's view
+          viewport.scrollTop = newScrollTop
+          
+          console.log('[MESSAGE-THREAD] 📍 Scroll restored to:', viewport.scrollTop)
+        }, 100)
       } else {
         setHasMoreMessages(false)
       }
