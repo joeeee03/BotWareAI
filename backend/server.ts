@@ -180,49 +180,17 @@ async function initializeServer() {
       console.log(`[v0] ✅ Server running on port ${PORT}`)
       console.log(`[v0] Listening on 0.0.0.0:${PORT}`)
       
-      // [TAG: WebSocket]
       // Setup Socket.IO event handlers
-      console.log('[v0] Setting up Socket.IO event handlers...')
+      console.log('[Server] Setting up Socket.IO handlers...')
       try {
         import("./services/socket-handler.js").then(({ setupSocketHandlers }) => {
           setupSocketHandlers(io)
-          console.log('[v0] ✅ Socket.IO event handlers configured')
+          console.log('[Server] ✅ Socket.IO handlers ready')
         }).catch(err => {
-          console.error('[v0] Error setting up socket handlers:', err)
+          console.error('[Server] Socket handlers error:', err)
         })
       } catch (err) {
-        console.error('[v0] Error importing socket handlers:', err)
-      }
-      
-      // [TAG: Realtime]
-      // Sistema PROFESIONAL: PostgreSQL LISTEN/NOTIFY (detección INSTANTÁNEA)
-      console.log('[v0] Configurando sistema de tiempo real profesional...')
-      try {
-        // Paso 1: Crear triggers automáticamente (si no existen)
-        import("./setup-triggers-auto.js").then(async ({ setupTriggersIfNeeded }) => {
-          const triggersOk = await setupTriggersIfNeeded()
-          
-          if (triggersOk) {
-            console.log('[v0] ✅ Triggers configurados')
-            
-            // Paso 2: Iniciar LISTEN/NOTIFY (detección INSTANTÁNEA, sin polling)
-            console.log('[v0] Iniciando PostgreSQL LISTEN/NOTIFY...')
-            import("./realtime-listener.js").then(({ startRealtimeListener }) => {
-              startRealtimeListener(io)
-              console.log('[v0] ✅ Sistema LISTEN/NOTIFY activo')
-              console.log('[v0] 🚀 PostgreSQL notificará INSTANTÁNEAMENTE cuando se inserte un mensaje')
-              console.log('[v0] 💡 NO hay polling - es 100% tiempo real profesional')
-            }).catch(err => {
-              console.error('[v0] Error iniciando realtime listener:', err)
-            })
-          } else {
-            console.log('[v0] ⚠️  Triggers no disponibles - sistema puede no funcionar')
-          }
-        }).catch(err => {
-          console.error('[v0] Error configurando triggers:', err)
-        })
-      } catch (err) {
-        console.error('[v0] Error en setup de tiempo real:', err)
+        console.error('[Server] Socket import error:', err)
       }
       
       resolve(true)

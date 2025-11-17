@@ -87,11 +87,11 @@ RUN npm ci --only=production
 COPY server-combined.js ./
 
 # Expose ports (Railway will use PORT env variable)
-EXPOSE 3000 3001
+EXPOSE 8080
 
-# Health check on frontend port
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-3000}/ || exit 1
+# Health check - more generous timeouts for Railway
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
+  CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-8080}/ || exit 1
 
-# Start both services with PM2
+# Start server
 CMD ["node", "server-combined.js"]
