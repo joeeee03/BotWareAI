@@ -1,5 +1,6 @@
 // SERVIDOR SIMPLE - Backend + Frontend en Railway
 import http from 'http';
+import net from 'net';
 import { spawn } from 'child_process';
 
 const BACKEND_PORT = 3001;
@@ -43,7 +44,6 @@ proxy.on('upgrade', (req, socket, head) => {
   console.log(`[Proxy] WebSocket upgrade: ${req.url} -> port ${targetPort}`);
   
   // Conectar directamente al backend/frontend
-  const net = require('net');
   const proxySocket = net.connect(targetPort, 'localhost', () => {
     // Reenviar la solicitud HTTP original
     proxySocket.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`);
