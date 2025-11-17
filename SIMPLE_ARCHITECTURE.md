@@ -19,7 +19,8 @@ DATABASE_URL=postgresql://...
 JWT_SECRET=tu-jwt-secret-muy-seguro
 ENCRYPTION_KEY=d9G4kPq7V2sH6nZ1xR8bT3wL0yF5cM2a
 NODE_ENV=production
-NEXT_PUBLIC_BACKEND_URL=https://tu-proyecto-production.up.railway.app
+NEXT_PUBLIC_API_URL=https://tu-proyecto-production.up.railway.app/api
+NEXT_PUBLIC_SOCKET_URL=https://tu-proyecto-production.up.railway.app
 ```
 
 ### Archivos Clave:
@@ -56,7 +57,7 @@ Tiempo real instantáneo ⚡
 
 1. **Railway**: Solo backend
 2. **Frontend**: Donde quieras (Vercel recomendado)
-3. **Variables**: `NEXT_PUBLIC_BACKEND_URL` apunta a Railway
+3. **Variables**: `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_SOCKET_URL` apuntan a Railway
 
 ---
 

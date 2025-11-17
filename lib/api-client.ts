@@ -1,9 +1,7 @@
 // API client - SIMPLE version
 
 // API URL - Conectar directamente al backend
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
-  ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`
-  : "http://localhost:3001/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 export class ApiClient {
   private token: string | null = null

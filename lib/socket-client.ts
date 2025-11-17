@@ -19,7 +19,7 @@ export const initializeSocket = (token: string): Socket => {
   currentToken = token
 
   // Conectar directamente al backend
-  const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"
+  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001"
   
   console.log('🔌 [SOCKET] Connecting to:', socketUrl)
   
