@@ -146,40 +146,64 @@ export function setUserCountry(countryCode: string): void {
   }
 }
 
-// Check if two dates are the same day (only year, month, day)
+// Get date string in YYYY-MM-DD format for a given date and timezone
+function getDateString(date: Date, countryCode: string): string {
+  const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  return formatter.format(date) // Returns YYYY-MM-DD
+}
+
+// Check if two dates are the same day in the given timezone
 export function isSameDay(date1: Date, date2: Date): boolean {
-  const d1 = new Date(date1)
-  const d2 = new Date(date2)
+  // Comparar año, mes y día directamente
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  )
+}
+
+// Check if two UTC dates are the same day when converted to a specific timezone
+export function isSameDayInTimezone(utcDate1: string | Date, utcDate2: string | Date, countryCode: string): boolean {
+  const date1 = typeof utcDate1 === 'string' ? new Date(utcDate1) : utcDate1
+  const date2 = typeof utcDate2 === 'string' ? new Date(utcDate2) : utcDate2
   
-  // Normalizar a medianoche para comparar solo la fecha
-  d1.setHours(0, 0, 0, 0)
-  d2.setHours(0, 0, 0, 0)
+  const dateStr1 = getDateString(date1, countryCode)
+  const dateStr2 = getDateString(date2, countryCode)
   
-  return d1.getTime() === d2.getTime()
+  return dateStr1 === dateStr2
 }
 
 // Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
 export function formatDateSeparator(utcDate: string | Date, countryCode: string): string {
   const localDate = convertToTimezone(utcDate, countryCode)
-  const now = new Date()
   
-  // Normalizar fechas a medianoche para comparación
-  const messageDay = new Date(localDate)
-  messageDay.setHours(0, 0, 0, 0)
+  // Obtener la fecha de hoy en la timezone del usuario
+  const nowUtc = new Date()
+  const todayLocal = convertToTimezone(nowUtc, countryCode)
   
-  const today = new Date(now)
-  today.setHours(0, 0, 0, 0)
+  // Comparar strings de fecha YYYY-MM-DD
+  const messageDate = getDateString(localDate, countryCode)
+  const todayDate = getDateString(todayLocal, countryCode)
   
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-  yesterday.setHours(0, 0, 0, 0)
+  // Calcular ayer
+  const yesterdayUtc = new Date(nowUtc)
+  yesterdayUtc.setDate(yesterdayUtc.getDate() - 1)
+  const yesterdayLocal = convertToTimezone(yesterdayUtc, countryCode)
+  const yesterdayDate = getDateString(yesterdayLocal, countryCode)
   
-  // Comparar timestamps de medianoche
-  if (messageDay.getTime() === today.getTime()) {
+  console.log('[DATE-SEPARATOR] Comparing:', { messageDate, todayDate, yesterdayDate })
+  
+  if (messageDate === todayDate) {
     return 'Hoy'
   }
   
-  if (messageDay.getTime() === yesterday.getTime()) {
+  if (messageDate === yesterdayDate) {
     return 'Ayer'
   }
   

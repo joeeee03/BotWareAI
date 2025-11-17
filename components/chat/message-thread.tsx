@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatWhatsAppText } from "@/lib/whatsapp-formatter"
-import { formatMessageTime, getUserCountry, formatDateSeparator, convertToTimezone, isSameDay } from "@/lib/timezone-utils"
+import { formatMessageTime, getUserCountry, formatDateSeparator, isSameDayInTimezone } from "@/lib/timezone-utils"
 
 interface MessageThreadProps {
   conversation: any
@@ -508,9 +508,10 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
           ) : (
             messages.map((message, index) => {
               // Determinar si debemos mostrar el separador de fecha
-              const showDateSeparator = index === 0 || !isSameDay(
-                convertToTimezone(messages[index - 1].created_at, userCountry),
-                convertToTimezone(message.created_at, userCountry)
+              const showDateSeparator = index === 0 || !isSameDayInTimezone(
+                messages[index - 1].created_at,
+                message.created_at,
+                userCountry
               )
               
               return (
