@@ -190,6 +190,23 @@ export function isSameDayInTimezone(utcDate1: string | Date, utcDate2: string | 
   return dateStr1 === dateStr2
 }
 
+// Helper function to get date parts in a specific timezone
+function getDatePartsInTimezone(date: Date, timezone: string): { year: number; month: number; day: number } {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  })
+  
+  const parts = formatter.formatToParts(date)
+  const year = parseInt(parts.find(p => p.type === 'year')?.value || '0')
+  const month = parseInt(parts.find(p => p.type === 'month')?.value || '0')
+  const day = parseInt(parts.find(p => p.type === 'day')?.value || '0')
+  
+  return { year, month, day }
+}
+
 // Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
 export function formatDateSeparator(utcDate: string | Date, countryCode: string): string {
   // Parse the UTC date from the database
@@ -199,27 +216,19 @@ export function formatDateSeparator(utcDate: string | Date, countryCode: string)
   // Get the current time
   const now = new Date()
   
-  // Get date components for message in target timezone
-  const messageFormatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-  const messageDateStr = messageFormatter.format(messageDate)
+  // Get date parts in the target timezone
+  const messageParts = getDatePartsInTimezone(messageDate, timezone)
+  const todayParts = getDatePartsInTimezone(now, timezone)
   
-  // Get date components for today in target timezone
-  const todayFormatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-  const todayDateStr = todayFormatter.format(now)
+  // Create comparison strings
+  const messageDateStr = `${messageParts.year}-${String(messageParts.month).padStart(2, '0')}-${String(messageParts.day).padStart(2, '0')}`
+  const todayDateStr = `${todayParts.year}-${String(todayParts.month).padStart(2, '0')}-${String(todayParts.day).padStart(2, '0')}`
   
   console.log('[DATE-SEPARATOR] Debug:', { 
     utcInput: typeof utcDate === 'string' ? utcDate : utcDate.toISOString(),
     messageDateParsed: messageDate.toISOString(),
+    messageParts,
+    todayParts,
     messageDateStr, 
     todayDateStr,
     timezone,
@@ -234,15 +243,11 @@ export function formatDateSeparator(utcDate: string | Date, countryCode: string)
   
   // Get yesterday's date in target timezone
   const yesterdayTime = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  const yesterdayFormatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-  const yesterdayDateStr = yesterdayFormatter.format(yesterdayTime)
+  const yesterdayParts = getDatePartsInTimezone(yesterdayTime, timezone)
+  const yesterdayDateStr = `${yesterdayParts.year}-${String(yesterdayParts.month).padStart(2, '0')}-${String(yesterdayParts.day).padStart(2, '0')}`
   
   console.log('[DATE-SEPARATOR] Yesterday check:', {
+    yesterdayParts,
     yesterdayDateStr,
     matches: messageDateStr === yesterdayDateStr
   })

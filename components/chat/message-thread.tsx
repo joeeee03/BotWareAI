@@ -46,6 +46,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [currentOffset, setCurrentOffset] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const isLoadingOldMessagesRef = useRef(false)
   const { toast } = useToast()
   const userCountry = getUserCountry()
 
@@ -183,8 +184,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   // We detect new messages by checking if messages were added at the end
   useEffect(() => {
     // Skip if loading initial messages or loading more old messages
-    if (isLoading || isLoadingMore) {
-      console.log("📜 [MESSAGE-THREAD] Skipping auto-scroll - loading messages")
+    if (isLoading || isLoadingMore || isLoadingOldMessagesRef.current) {
+      console.log("📜 [MESSAGE-THREAD] Skipping auto-scroll - loading messages (isLoading:", isLoading, "isLoadingMore:", isLoadingMore, "isLoadingOldMessagesRef:", isLoadingOldMessagesRef.current, ")")
       return
     }
     
@@ -272,6 +273,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     if (isLoadingMore || !hasMoreMessages) return
     
     setIsLoadingMore(true)
+    isLoadingOldMessagesRef.current = true
     console.log('[MESSAGE-THREAD] 🔄 Loading more messages from offset:', currentOffset)
     
     // Guardar posición actual antes de cargar
@@ -336,6 +338,11 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       })
     } finally {
       setIsLoadingMore(false)
+      // Reset the flag after a delay to ensure scroll restoration completes
+      setTimeout(() => {
+        isLoadingOldMessagesRef.current = false
+        console.log('[MESSAGE-THREAD] ✅ Finished loading old messages, re-enabling auto-scroll')
+      }, 200)
     }
   }
 
