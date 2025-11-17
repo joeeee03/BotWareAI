@@ -148,7 +148,17 @@ export default function ChatsPage() {
   }
 
   const handleSelectConversation = (conversation: any) => {
+    console.log("[CHATS-PAGE] Selected conversation:", conversation.id)
     setSelectedConversation(conversation)
+  }
+
+  const updateConversationSender = (conversationId: number, sender: string, lastMessage: string) => {
+    console.log('[CHATS-PAGE] Updating conversation sender:', { conversationId, sender, lastMessage: lastMessage?.substring(0, 30) })
+    setConversations(prev => prev.map(conv => 
+      conv.id === conversationId 
+        ? { ...conv, last_message_sender: sender, last_message: lastMessage }
+        : conv
+    ))
   }
 
   if (isLoading) {
@@ -206,6 +216,7 @@ export default function ChatsPage() {
             <MessageThread
               conversation={selectedConversation}
               onConversationUpdate={loadConversations}
+              onUpdateSender={updateConversationSender}
               onClose={() => {
                 setSelectedConversation(null)
                 // Return focus to the sidebar

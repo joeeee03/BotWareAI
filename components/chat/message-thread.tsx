@@ -22,6 +22,7 @@ import { formatMessageTime, getUserCountry } from "@/lib/timezone-utils"
 interface MessageThreadProps {
   conversation: any
   onConversationUpdate: () => void
+  onUpdateSender?: (conversationId: number, sender: string, lastMessage: string) => void
   onClose?: () => void
 }
 
@@ -35,7 +36,7 @@ interface Message {
   isPending?: boolean
 }
 
-export function MessageThread({ conversation, onConversationUpdate, onClose }: MessageThreadProps) {
+export function MessageThread({ conversation, onConversationUpdate, onUpdateSender, onClose }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -206,6 +207,13 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
         setMessages(response.messages)
         setCurrentOffset(50)
         setHasMoreMessages(response.messages.length === 50)
+        
+        // Actualizar last_message_sender en la lista de conversaciones
+        const lastMessage = response.messages[response.messages.length - 1]
+        if (lastMessage && onUpdateSender) {
+          console.log('[MESSAGE-THREAD] Updating conversation sender:', lastMessage.sender)
+          onUpdateSender(conversation.id, lastMessage.sender, lastMessage.message)
+        }
       } else {
         setMessages([])
         setCurrentOffset(0)
