@@ -7,7 +7,7 @@ console.log('[Combined Server] 🚀 Starting backend and frontend...');
 
 const PUBLIC_PORT = process.env.PORT || '3000';
 const BACKEND_PORT = '3001';
-const FRONTEND_PORT = '8080';
+const FRONTEND_PORT = '3002';
 
 console.log(`[Combined Server] Public proxy will run on port ${PUBLIC_PORT}`);
 console.log(`[Combined Server] Backend will run on port ${BACKEND_PORT}`);
