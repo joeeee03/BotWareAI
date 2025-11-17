@@ -1,93 +1,53 @@
-// [TAG: WebSocket]
-// Socket.IO client configuration for real-time messaging
-
+// Socket.IO client - SIMPLE version
 import { io, type Socket } from "socket.io-client"
 
 let socket: Socket | null = null
-
 let currentToken: string | null = null
 
 export const initializeSocket = (token: string): Socket => {
-  // Only reconnect if token changed or socket is not connected
   if (socket && socket.connected && currentToken === token) {
-    console.log("🔄 [SOCKET] Reusing existing connection")
+    console.log("🔄 [SOCKET] Reusing connection")
     return socket
   }
 
-  // Disconnect only if token changed
   if (socket && currentToken !== token) {
-    console.log("🔄 [SOCKET] Token changed, reconnecting...")
+    console.log("🔄 [SOCKET] Token changed, reconnecting")
     socket.disconnect()
     socket = null
   }
 
   currentToken = token
 
-  // IMPORTANTE: En Railway, Next.js hace REWRITE de /socket.io/* al backend interno
-  // Railway solo expone UN puerto, así que Socket.IO debe usar el mismo origen
-  // Next.js reescribe /socket.io/* a http://localhost:3001/socket.io/*
+  // Conectar directamente al backend
+  const socketUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001"
   
-  let socketUrl: string
-  
-  if (typeof window !== 'undefined') {
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-    
-    if (isProduction) {
-      // RAILWAY: Usar el mismo origen (Next.js hará el rewrite internamente)
-      socketUrl = window.location.origin
-      console.log('🔌 [SOCKET] RAILWAY MODE - Using Next.js rewrite:', socketUrl)
-    } else {
-      // LOCAL: Conectar directamente a localhost:3001
-      socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001"
-      console.log('🔌 [SOCKET] LOCAL MODE - Direct connection:', socketUrl)
-    }
-  } else {
-    socketUrl = "http://localhost:3001"
-  }
-
-  console.log('🔌 [SOCKET] Final socket URL:', socketUrl)
-  console.log('🔌 [SOCKET] Path: /socket.io (Next.js will rewrite this)')
-  console.log('🔌 [SOCKET] Token length:', token.length)
-
-  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+  console.log('🔌 [SOCKET] Connecting to:', socketUrl)
   
   socket = io(socketUrl, {
     path: '/socket.io',
-    auth: {
-      token,
-    },
-    // En Railway, usar polling primero porque WebSocket puede fallar con Next.js proxy
-    transports: isProduction ? ["polling", "websocket"] : ["websocket", "polling"],
+    auth: { token },
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-    reconnectionAttempts: 10, // Más intentos en Railway
-    timeout: isProduction ? 30000 : 20000, // Más tiempo en Railway
-    forceNew: false,
-    upgrade: true, // Permitir upgrade de polling a websocket
-    autoConnect: true,
+    reconnectionAttempts: 5,
+    timeout: 20000,
   })
 
   socket.on("connect", () => {
     console.log("🟢 [SOCKET] Connected:", socket?.id)
-    console.log("🟢 [SOCKET] Transport:", socket?.io.engine.transport.name)
   })
 
   socket.on("disconnect", (reason) => {
     console.log("🔴 [SOCKET] Disconnected:", reason)
-    if (reason === "io server disconnect") {
-      console.log("🔴 [SOCKET] Server desconectó - reconectando...")
-      socket?.connect()
-    }
   })
 
   socket.on("connect_error", (error) => {
-    console.error("❌ [SOCKET] Connection error:", error.message)
+    console.error("❌ [SOCKET] Error:", error.message)
   })
 
-  // Log TODOS los eventos recibidos (incluye message:new, conversation:updated, etc.)
   socket.onAny((eventName, ...args) => {
-    console.log(`📨 [SOCKET] Event received: ${eventName}`, JSON.stringify(args).substring(0, 200))
+    console.log(`📨 [SOCKET] ${eventName}:`, JSON.stringify(args).substring(0, 150))
   })
 
   return socket

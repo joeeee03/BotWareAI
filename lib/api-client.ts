@@ -1,27 +1,9 @@
-// [TAG: Mensajes]
-// API client for HTTP requests
+// API client - SIMPLE version
 
-// IMPORTANTE: En Railway, Next.js hace REWRITE de /api/* y /socket.io/* al backend interno
-// Railway solo expone UN puerto, así que usamos rutas relativas que Next.js proxea
-// En local, conectamos directamente a localhost:3001
-let API_URL: string
-
-if (typeof window !== 'undefined') {
-  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-  
-  if (isProduction) {
-    // RAILWAY: Usar rutas relativas para que Next.js haga el rewrite al backend interno
-    API_URL = ''
-    console.log('[API-CLIENT] RAILWAY MODE - Using Next.js rewrites (relative URLs)')
-  } else {
-    // LOCAL: Conectar directamente a localhost:3001
-    API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-    console.log('[API-CLIENT] LOCAL MODE - Backend URL:', API_URL)
-  }
-} else {
-  // SSR: usar rutas relativas también
-  API_URL = ''
-}
+// API URL - Conectar directamente al backend
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
+  ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`
+  : "http://localhost:3001/api";
 
 export class ApiClient {
   private token: string | null = null
