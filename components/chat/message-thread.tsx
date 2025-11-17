@@ -190,6 +190,12 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       return
     }
     
+    // CRITICAL: Skip if currently loading more messages
+    if (isLoadingMore) {
+      console.log("📜 [MESSAGE-THREAD] Skipping auto-scroll - loading more messages")
+      return
+    }
+    
     // Skip if no messages
     if (messages.length === 0) {
       return
@@ -198,6 +204,14 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     const currentOldestMessageId = messages[0]?.id
     const previousLength = previousMessagesLengthRef.current
     const previousOldestId = oldestMessageIdRef.current
+    
+    console.log("📜 [MESSAGE-THREAD] Auto-scroll check:", {
+      currentOldestMessageId,
+      previousOldestId,
+      currentLength: messages.length,
+      previousLength,
+      isLoadingMore
+    })
     
     // Update refs for next time
     previousMessagesLengthRef.current = messages.length
@@ -220,13 +234,13 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     // If oldest message ID changed, we loaded old messages (prepended to array)
     // In this case, DON'T scroll to bottom
     if (previousOldestId !== null && currentOldestMessageId !== previousOldestId) {
-      console.log("📜 [MESSAGE-THREAD] Old messages loaded (oldest ID changed from", previousOldestId, "to", currentOldestMessageId, ") - NOT scrolling")
+      console.log("📜 [MESSAGE-THREAD] ❌ Old messages loaded (oldest ID changed from", previousOldestId, "to", currentOldestMessageId, ") - NOT scrolling")
       return
     }
     
     // If we got here and length increased, new messages were added at the end
     if (messages.length > previousLength) {
-      console.log("📜 [MESSAGE-THREAD] New messages added at end, scrolling to bottom")
+      console.log("📜 [MESSAGE-THREAD] ✅ New messages added at end, scrolling to bottom")
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           console.log("📜 [EFFECT] DOM updated, scrolling to bottom")
@@ -236,8 +250,10 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
           setTimeout(() => scrollToBottom(true), 100)
         })
       })
+    } else {
+      console.log("📜 [MESSAGE-THREAD] No change in length or other condition, not scrolling")
     }
-  }, [messages, isLoading])
+  }, [messages, isLoading, isLoadingMore])
 
   // Only reload messages when socket reconnects after being disconnected
   useEffect(() => {
