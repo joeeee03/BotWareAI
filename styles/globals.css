@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* @custom-variant is a valid Tailwind CSS v4 directive */
+/* csstools-disable-next-line */
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -74,6 +76,8 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* @theme is a valid Tailwind CSS v4 directive */
+/* csstools-disable-next-line */
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
@@ -115,6 +119,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* @apply is a valid Tailwind CSS directive */
+/* csstools-disable-next-line */
 @layer base {
   * {
     @apply border-border outline-ring/50;

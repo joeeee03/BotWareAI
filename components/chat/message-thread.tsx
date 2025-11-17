@@ -408,7 +408,7 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
             placeholder="Escribe un mensaje..."
             disabled={isSending}
             className="flex-1 dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
