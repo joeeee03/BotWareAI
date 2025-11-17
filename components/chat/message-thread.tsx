@@ -47,7 +47,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const [currentOffset, setCurrentOffset] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const previousMessagesLengthRef = useRef(0)
-  const oldestMessageIdRef = useRef<number | null>(null)
+  const newestMessageIdRef = useRef<number | null>(null)
   const { toast } = useToast()
   const userCountry = getUserCountry()
 
@@ -182,7 +182,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   }, [conversation?.id])
 
   // Scroll to bottom ONLY when new messages arrive (not when loading old ones)
-  // We detect new messages by checking if the oldest message ID changed
+  // We detect new messages by checking if the NEWEST (last) message ID changed
   useEffect(() => {
     // Skip if loading initial messages
     if (isLoading) {
@@ -201,13 +201,14 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       return
     }
     
-    const currentOldestMessageId = messages[0]?.id
+    // Get the NEWEST (last) message in the array
+    const currentNewestMessageId = messages[messages.length - 1]?.id
     const previousLength = previousMessagesLengthRef.current
-    const previousOldestId = oldestMessageIdRef.current
+    const previousNewestId = newestMessageIdRef.current
     
     console.log("📜 [MESSAGE-THREAD] Auto-scroll check:", {
-      currentOldestMessageId,
-      previousOldestId,
+      currentNewestMessageId,
+      previousNewestId,
       currentLength: messages.length,
       previousLength,
       isLoadingMore
@@ -215,7 +216,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     
     // Update refs for next time
     previousMessagesLengthRef.current = messages.length
-    oldestMessageIdRef.current = currentOldestMessageId
+    newestMessageIdRef.current = currentNewestMessageId
     
     // If this is the first render with messages, scroll to bottom
     if (previousLength === 0 && messages.length > 0) {
@@ -231,16 +232,16 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       return
     }
     
-    // If oldest message ID changed, we loaded old messages (prepended to array)
+    // If newest message ID DIDN'T change but length increased, we loaded old messages
     // In this case, DON'T scroll to bottom
-    if (previousOldestId !== null && currentOldestMessageId !== previousOldestId) {
-      console.log("📜 [MESSAGE-THREAD] ❌ Old messages loaded (oldest ID changed from", previousOldestId, "to", currentOldestMessageId, ") - NOT scrolling")
+    if (previousNewestId !== null && currentNewestMessageId === previousNewestId && messages.length > previousLength) {
+      console.log("📜 [MESSAGE-THREAD] ❌ Old messages loaded (newest ID stayed", currentNewestMessageId, "but length increased) - NOT scrolling")
       return
     }
     
-    // If we got here and length increased, new messages were added at the end
-    if (messages.length > previousLength) {
-      console.log("📜 [MESSAGE-THREAD] ✅ New messages added at end, scrolling to bottom")
+    // If newest message ID changed, a new message was added at the end
+    if (previousNewestId !== null && currentNewestMessageId !== previousNewestId) {
+      console.log("📜 [MESSAGE-THREAD] ✅ New message detected (newest ID changed from", previousNewestId, "to", currentNewestMessageId, ") - scrolling to bottom")
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           console.log("📜 [EFFECT] DOM updated, scrolling to bottom")
@@ -251,7 +252,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         })
       })
     } else {
-      console.log("📜 [MESSAGE-THREAD] No change in length or other condition, not scrolling")
+      console.log("📜 [MESSAGE-THREAD] No new messages detected, not scrolling")
     }
   }, [messages, isLoading, isLoadingMore])
 
