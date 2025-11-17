@@ -90,7 +90,10 @@ export function convertToTimezone(utcDate: string | Date, countryCode: string): 
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate
   const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
   
-  // Create a new date in the target timezone
+  // Get the time in milliseconds and the timezone offset
+  const utcTime = date.getTime()
+  
+  // Create a date formatter for the target timezone
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -108,9 +111,17 @@ export function convertToTimezone(utcDate: string | Date, countryCode: string): 
     return acc
   }, {} as Record<string, string>)
   
-  return new Date(
-    `${partsObj.year}-${partsObj.month}-${partsObj.day}T${partsObj.hour}:${partsObj.minute}:${partsObj.second}`
-  )
+  // Create a date object with the correct time in the target timezone
+  // We need to create it in UTC and then adjust for the timezone offset
+  const localDateStr = `${partsObj.year}-${partsObj.month}-${partsObj.day}T${partsObj.hour}:${partsObj.minute}:${partsObj.second}.000Z`
+  const localDate = new Date(localDateStr)
+  
+  // Calculate the offset between UTC and the target timezone
+  const localTime = localDate.getTime()
+  const offset = utcTime - localTime
+  
+  // Return a date that represents the local time
+  return new Date(utcTime - offset)
 }
 
 // Format message timestamp for display
@@ -181,23 +192,27 @@ export function isSameDayInTimezone(utcDate1: string | Date, utcDate2: string | 
 
 // Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
 export function formatDateSeparator(utcDate: string | Date, countryCode: string): string {
-  const localDate = convertToTimezone(utcDate, countryCode)
+  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate
+  const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
   
-  // Obtener la fecha de hoy en la timezone del usuario
-  const nowUtc = new Date()
-  const todayLocal = convertToTimezone(nowUtc, countryCode)
+  // Get today's date in the target timezone
+  const now = new Date()
   
-  // Comparar strings de fecha YYYY-MM-DD
-  const messageDate = getDateString(localDate, countryCode)
-  const todayDate = getDateString(todayLocal, countryCode)
+  // Get date strings directly using the timezone
+  const messageDate = getDateString(date, countryCode)
+  const todayDate = getDateString(now, countryCode)
   
-  // Calcular ayer
-  const yesterdayUtc = new Date(nowUtc)
-  yesterdayUtc.setDate(yesterdayUtc.getDate() - 1)
-  const yesterdayLocal = convertToTimezone(yesterdayUtc, countryCode)
-  const yesterdayDate = getDateString(yesterdayLocal, countryCode)
+  // Calculate yesterday by creating a date 24 hours ago
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const yesterdayDate = getDateString(yesterday, countryCode)
   
-  console.log('[DATE-SEPARATOR] Comparing:', { messageDate, todayDate, yesterdayDate })
+  console.log('[DATE-SEPARATOR] Comparing:', { 
+    messageDate, 
+    todayDate, 
+    yesterdayDate,
+    messageTime: date.toISOString(),
+    timezone 
+  })
   
   if (messageDate === todayDate) {
     return 'Hoy'
@@ -208,5 +223,13 @@ export function formatDateSeparator(utcDate: string | Date, countryCode: string)
   }
   
   // Format as: "Sáb, 9 nov" or "Lun, 21 oct"
-  return format(localDate, "eee, d MMM", { locale: es })
+  // Use the original date with timezone formatting
+  const formatter = new Intl.DateTimeFormat('es-ES', {
+    timeZone: timezone,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+  
+  return formatter.format(date).replace(',', '')
 }

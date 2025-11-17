@@ -268,8 +268,18 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     
     // Guardar posición actual antes de cargar
     const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement
-    const scrollHeightBefore = viewport?.scrollHeight || 0
-    const scrollTopBefore = viewport?.scrollTop || 0
+    if (!viewport) {
+      setIsLoadingMore(false)
+      return
+    }
+    
+    const scrollHeightBefore = viewport.scrollHeight
+    const scrollTopBefore = viewport.scrollTop
+    
+    console.log('[MESSAGE-THREAD] 📍 Before load:', {
+      scrollHeightBefore,
+      scrollTopBefore
+    })
     
     try {
       const response = await apiClient.getMessages(
@@ -285,27 +295,27 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         setHasMoreMessages(response.messages.length === 50)
         
         // Restaurar posición de scroll después de que se rendericen los mensajes
-        // Usar setTimeout con múltiples requestAnimationFrame para asegurar el render completo
-        setTimeout(() => {
+        // Necesitamos esperar a que React actualice el DOM completamente
+        requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              if (viewport) {
-                const scrollHeightAfter = viewport.scrollHeight
-                const scrollDiff = scrollHeightAfter - scrollHeightBefore
-                const newScrollTop = scrollTopBefore + scrollDiff
-                viewport.scrollTop = newScrollTop
-                console.log('[MESSAGE-THREAD] 📍 Restored scroll:', {
-                  scrollHeightBefore,
-                  scrollHeightAfter,
-                  scrollDiff,
-                  scrollTopBefore,
-                  newScrollTop,
-                  currentScrollTop: viewport.scrollTop
-                })
-              }
+              const scrollHeightAfter = viewport.scrollHeight
+              const heightDifference = scrollHeightAfter - scrollHeightBefore
+              const newScrollTop = scrollTopBefore + heightDifference
+              
+              console.log('[MESSAGE-THREAD] 📍 After load:', {
+                scrollHeightAfter,
+                heightDifference,
+                newScrollTop
+              })
+              
+              // Establecer la nueva posición de scroll
+              viewport.scrollTop = newScrollTop
+              
+              console.log('[MESSAGE-THREAD] 📍 Scroll restored to:', viewport.scrollTop)
             })
           })
-        }, 50)
+        })
       } else {
         setHasMoreMessages(false)
       }
