@@ -86,14 +86,15 @@ export function getCountryList(): Array<{ code: string; name: string; timezone: 
 }
 
 // Convert UTC date to local timezone
+// This function returns a Date object that when displayed in the LOCAL browser timezone
+// will show the same time as it would in the target country's timezone
+// WARNING: This is a bit of a hack - the Date object is still in UTC, but the local time
+// values (getHours, getMinutes, etc) will be correct for the target timezone
 export function convertToTimezone(utcDate: string | Date, countryCode: string): Date {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate
   const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
   
-  // Get the time in milliseconds and the timezone offset
-  const utcTime = date.getTime()
-  
-  // Create a date formatter for the target timezone
+  // Get the date components in the target timezone
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -111,17 +112,11 @@ export function convertToTimezone(utcDate: string | Date, countryCode: string): 
     return acc
   }, {} as Record<string, string>)
   
-  // Create a date object with the correct time in the target timezone
-  // We need to create it in UTC and then adjust for the timezone offset
-  const localDateStr = `${partsObj.year}-${partsObj.month}-${partsObj.day}T${partsObj.hour}:${partsObj.minute}:${partsObj.second}.000Z`
-  const localDate = new Date(localDateStr)
-  
-  // Calculate the offset between UTC and the target timezone
-  const localTime = localDate.getTime()
-  const offset = utcTime - localTime
-  
-  // Return a date that represents the local time
-  return new Date(utcTime - offset)
+  // Create a date string in the local timezone of the browser
+  // This creates a date that represents the target timezone's time
+  // interpreted as if it were in the browser's local timezone
+  const localDateStr = `${partsObj.year}-${partsObj.month}-${partsObj.day}T${partsObj.hour}:${partsObj.minute}:${partsObj.second}`
+  return new Date(localDateStr)
 }
 
 // Format message timestamp for display
@@ -160,13 +155,18 @@ export function setUserCountry(countryCode: string): void {
 // Get date string in YYYY-MM-DD format for a given date and timezone
 function getDateString(date: Date, countryCode: string): string {
   const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
+  
+  // Use Intl to get the date components in the target timezone
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   })
-  return formatter.format(date) // Returns YYYY-MM-DD
+  
+  // Format returns YYYY-MM-DD in the target timezone
+  const formatted = formatter.format(date)
+  return formatted
 }
 
 // Check if two dates are the same day in the given timezone
@@ -192,38 +192,51 @@ export function isSameDayInTimezone(utcDate1: string | Date, utcDate2: string | 
 
 // Format date separator like WhatsApp (Hoy, Ayer, or formatted date)
 export function formatDateSeparator(utcDate: string | Date, countryCode: string): string {
-  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate
+  // Parse the UTC date from the database
+  const messageDate = typeof utcDate === 'string' ? new Date(utcDate) : utcDate
   const timezone = COUNTRY_TIMEZONES[countryCode] || 'UTC'
   
-  // Get today's date in the target timezone
+  // Get the current time
   const now = new Date()
   
-  // Get date strings directly using the timezone
-  const messageDate = getDateString(date, countryCode)
-  const todayDate = getDateString(now, countryCode)
+  // Convert both dates to YYYY-MM-DD strings in the user's timezone
+  const messageDateStr = getDateString(messageDate, countryCode)
+  const todayDateStr = getDateString(now, countryCode)
   
-  // Calculate yesterday by creating a date 24 hours ago
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  const yesterdayDate = getDateString(yesterday, countryCode)
-  
-  console.log('[DATE-SEPARATOR] Comparing:', { 
-    messageDate, 
-    todayDate, 
-    yesterdayDate,
-    messageTime: date.toISOString(),
-    timezone 
+  console.log('[DATE-SEPARATOR] Debug:', { 
+    utcInput: typeof utcDate === 'string' ? utcDate : utcDate.toISOString(),
+    messageDateParsed: messageDate.toISOString(),
+    messageDateStr, 
+    todayDateStr,
+    timezone,
+    countryCode
   })
   
-  if (messageDate === todayDate) {
+  // Check if message is from today
+  if (messageDateStr === todayDateStr) {
+    console.log('[DATE-SEPARATOR] ✅ Es HOY')
     return 'Hoy'
   }
   
-  if (messageDate === yesterdayDate) {
+  // Calculate yesterday in the user's timezone
+  // We need to get "yesterday" as it would be in the user's timezone
+  // Create a new date that is 24 hours before "now"
+  const yesterdayTime = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const yesterdayDateStr = getDateString(yesterdayTime, countryCode)
+  
+  console.log('[DATE-SEPARATOR] Yesterday check:', {
+    yesterdayDateStr,
+    matches: messageDateStr === yesterdayDateStr
+  })
+  
+  // Check if message is from yesterday
+  if (messageDateStr === yesterdayDateStr) {
+    console.log('[DATE-SEPARATOR] ✅ Es AYER')
     return 'Ayer'
   }
   
-  // Format as: "Sáb, 9 nov" or "Lun, 21 oct"
-  // Use the original date with timezone formatting
+  // For older dates, format as: "Sáb 9 nov" or "Lun 21 oct"
+  console.log('[DATE-SEPARATOR] ✅ Es fecha antigua, formateando...')
   const formatter = new Intl.DateTimeFormat('es-ES', {
     timeZone: timezone,
     weekday: 'short',
@@ -231,5 +244,7 @@ export function formatDateSeparator(utcDate: string | Date, countryCode: string)
     month: 'short',
   })
   
-  return formatter.format(date).replace(',', '')
+  const formatted = formatter.format(messageDate)
+  // Remove commas if present: "sáb., 9 nov" -> "sáb 9 nov"
+  return formatted.replace(/\.,/g, '').replace(',', '')
 }
