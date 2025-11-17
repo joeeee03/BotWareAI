@@ -40,6 +40,9 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
+  const [oldestMessageId, setOldestMessageId] = useState<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const userCountry = getUserCountry()
@@ -74,7 +77,6 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
     const handleNewMessage = (newMessage: Message) => {
       console.log("📨 [MESSAGE-THREAD] New message received:", newMessage)
       console.log("📨 [MESSAGE-THREAD] Message text:", newMessage.message)
-      console.log("📨 [MESSAGE-THREAD] Is encrypted?:", newMessage.message?.includes('==') || newMessage.message?.length < 50)
       console.log("📨 [MESSAGE-THREAD] Current conversation ID:", conversation?.id)
       
       // Only add message if it belongs to current conversation
@@ -125,10 +127,14 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
       console.log("✅ [MESSAGE-THREAD] Message sent acknowledgment:", tempId, message)
       setMessages((prev) => {
         // Replace temporary message with real message from DB
-        // Remove isPending and keep the real ID
+        const hasTemp = prev.some(m => m.tempId === tempId)
+        if (!hasTemp) {
+          console.log("⚠️ [MESSAGE-THREAD] Temp message not found, adding real message")
+          return [...prev, { ...message, isPending: false }]
+        }
         return prev.map((m) => 
           m.tempId === tempId 
-            ? { ...message, isPending: false } // Remove tempId to avoid conflicts
+            ? { ...message, isPending: false }
             : m
         )
       })
@@ -186,21 +192,23 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
     return () => document.removeEventListener("keydown", handleKey)
   }, [onClose])
 
-  const loadMessages = async () => {
-    // Don't show loading spinner - show UI immediately for better UX
+  const loadMessages = async (reset = true) => {
     setIsLoading(true)
     
-    console.log('[MESSAGE-THREAD] 🔄 Loading messages for conversation:', conversation.id)
+    console.log('[MESSAGE-THREAD] 🔄 Loading initial 50 messages for conversation:', conversation.id)
     
-    // Start loading in background
     try {
-      const response = await apiClient.getMessages(conversation.id.toString(), 50)  // Cargar últimos 50 mensajes
+      const response = await apiClient.getMessages(conversation.id.toString(), 50)
       console.log('[MESSAGE-THREAD] ✅ Loaded', response.messages.length, 'messages from API')
+      
       if (response.messages.length > 0) {
-        console.log('[MESSAGE-THREAD] 📊 First message:', response.messages[0]?.message?.substring(0, 50))
-        console.log('[MESSAGE-THREAD] 📊 Last message:', response.messages[response.messages.length - 1]?.message?.substring(0, 50))
+        setMessages(response.messages)
+        setOldestMessageId(response.messages[0]?.id)
+        setHasMoreMessages(response.messages.length === 50)
+      } else {
+        setMessages([])
+        setHasMoreMessages(false)
       }
-      setMessages(response.messages)
       
       // Scroll after messages loaded
       requestAnimationFrame(() => {
@@ -218,6 +226,57 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
       setIsLoading(false)
     }
   }
+
+  const loadMoreMessages = async () => {
+    if (isLoadingMore || !hasMoreMessages || !oldestMessageId) return
+    
+    setIsLoadingMore(true)
+    console.log('[MESSAGE-THREAD] 🔄 Loading more messages before ID:', oldestMessageId)
+    
+    try {
+      const response = await apiClient.getMessages(
+        conversation.id.toString(), 
+        50, 
+        oldestMessageId.toString()
+      )
+      console.log('[MESSAGE-THREAD] ✅ Loaded', response.messages.length, 'older messages')
+      
+      if (response.messages.length > 0) {
+        setMessages((prev) => [...response.messages, ...prev])
+        setOldestMessageId(response.messages[0]?.id)
+        setHasMoreMessages(response.messages.length === 50)
+      } else {
+        setHasMoreMessages(false)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error al cargar más mensajes",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
+  // Handle scroll to load more messages
+  useEffect(() => {
+    if (!scrollRef.current) return
+    
+    const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement
+    if (!viewport) return
+    
+    const handleScroll = () => {
+      // Check if user scrolled to top (with 100px threshold)
+      if (viewport.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+        console.log('[MESSAGE-THREAD] 📜 User scrolled to top, loading more messages')
+        loadMoreMessages()
+      }
+    }
+    
+    viewport.addEventListener('scroll', handleScroll)
+    return () => viewport.removeEventListener('scroll', handleScroll)
+  }, [hasMoreMessages, isLoadingMore, oldestMessageId])
 
   const scrollToBottom = (instant = false) => {
     if (!scrollRef.current) {
@@ -367,8 +426,19 @@ export function MessageThread({ conversation, onConversationUpdate, onClose }: M
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 overflow-y-auto p-4 dark:bg-slate-900 bg-white" ref={scrollRef}>
+      <ScrollArea 
+        className="flex-1 overflow-y-auto p-4 dark:bg-slate-900 bg-white" 
+        ref={scrollRef}
+      >
         <div className="space-y-2">
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="flex items-center gap-2 dark:text-slate-400 text-slate-600">
+                <div className="w-4 h-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                <span className="text-sm">Cargando mensajes anteriores...</span>
+              </div>
+            </div>
+          )}
           {messages.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="dark:text-slate-400 text-slate-600">Sin mensajes aún — inicia la conversación</div>

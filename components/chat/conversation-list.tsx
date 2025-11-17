@@ -416,7 +416,7 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                 key={conversation.id}
                 onClick={() => onSelectConversation(conversation)}
                 className={cn(
-                  "w-full p-3 flex items-center gap-3 dark:hover:bg-slate-700/30 hover:bg-blue-50/50 transition-all duration-200 text-left relative group",
+                  "w-full p-4 flex items-start gap-3 dark:hover:bg-slate-700/30 hover:bg-blue-50/50 transition-all duration-200 text-left relative group",
                   "hover:scale-[1.02] hover:shadow-md active:scale-[0.98]",
                   selectedConversation?.id === conversation.id && "dark:bg-slate-700/50 bg-blue-100/70 border-r-4 border-blue-500 shadow-lg scale-[1.01]",
                 )}
@@ -427,28 +427,35 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                     {getInitials(conversation.customer_name || conversation.customer_phone)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium truncate dark:text-slate-100 text-slate-800 text-sm max-w-[140px] transition-colors duration-200 group-hover:text-blue-500">
+                <div className="flex-1 min-w-0 overflow-hidden pr-16">
+                  <div className="flex items-start justify-between mb-1">
+                    <h3 className="font-medium truncate dark:text-slate-100 text-slate-800 text-sm transition-colors duration-200 group-hover:text-blue-500">
                       {conversation.customer_name || conversation.customer_phone}
                     </h3>
-                    {conversation.last_message_time && (
-                      <span className="text-xs dark:text-slate-400 text-slate-500 whitespace-nowrap ml-1 flex-shrink-0">
-                        {formatConversationTime(conversation.last_message_time, userCountry)}
-                      </span>
-                    )}
                   </div>
-                  <p className="text-xs dark:text-slate-400 text-slate-600 truncate">
-                    {conversation.last_message ? stripWhatsAppFormatting(conversation.last_message) : "Sin mensajes aún"}
+                  <p className="text-xs dark:text-slate-400 text-slate-600 truncate pr-2">
+                    {conversation.last_message ? (
+                      <>
+                        {conversation.last_message_sender === 'bot' && (
+                          <span className="font-bold">Tú: </span>
+                        )}
+                        {stripWhatsAppFormatting(conversation.last_message)}
+                      </>
+                    ) : "Sin mensajes aún"}
                   </p>
-                  {conversation.unread_count > 0 && (
-                    <div className="absolute right-4 top-4 animate-fadeIn">
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-500 rounded-full animate-pulse shadow-lg">
-                        {conversation.unread_count}
-                      </span>
-                    </div>
-                  )}
                 </div>
+                {conversation.last_message_time && (
+                  <span className="absolute top-4 right-4 text-xs dark:text-slate-400 text-slate-500 whitespace-nowrap">
+                    {formatConversationTime(conversation.last_message_time, userCountry)}
+                  </span>
+                )}
+                {conversation.unread_count > 0 && (
+                  <div className="absolute right-4 bottom-4 animate-fadeIn">
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-500 rounded-full animate-pulse shadow-lg">
+                      {conversation.unread_count}
+                    </span>
+                  </div>
+                )}
               </button>
             ))
           )}
