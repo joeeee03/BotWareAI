@@ -76,6 +76,13 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+# ===== INSTALL ROOT DEPENDENCIES FOR server-combined.js =====
+# Copy root package files
+COPY package*.json ./
+
+# Install production dependencies (includes http-proxy)
+RUN npm ci --only=production
+
 # Copy server-combined.js
 COPY server-combined.js ./
 
