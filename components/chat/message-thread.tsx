@@ -46,7 +46,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [currentOffset, setCurrentOffset] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const isLoadingOldMessagesRef = useRef(false)
+  const previousMessagesLengthRef = useRef(0)
+  const oldestMessageIdRef = useRef<number | null>(null)
   const { toast } = useToast()
   const userCountry = getUserCountry()
 
@@ -181,18 +182,51 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   }, [conversation?.id])
 
   // Scroll to bottom ONLY when new messages arrive (not when loading old ones)
-  // We detect new messages by checking if messages were added at the end
+  // We detect new messages by checking if the oldest message ID changed
   useEffect(() => {
-    // Skip if loading initial messages or loading more old messages
-    if (isLoading || isLoadingMore || isLoadingOldMessagesRef.current) {
-      console.log("📜 [MESSAGE-THREAD] Skipping auto-scroll - loading messages (isLoading:", isLoading, "isLoadingMore:", isLoadingMore, "isLoadingOldMessagesRef:", isLoadingOldMessagesRef.current, ")")
+    // Skip if loading initial messages
+    if (isLoading) {
+      console.log("📜 [MESSAGE-THREAD] Skipping auto-scroll - initial loading")
       return
     }
     
-    // Only scroll if we have messages
-    if (messages.length > 0) {
-      console.log("📜 [MESSAGE-THREAD] Messages changed, checking if should scroll...")
-      // Wait for DOM update with double RAF
+    // Skip if no messages
+    if (messages.length === 0) {
+      return
+    }
+    
+    const currentOldestMessageId = messages[0]?.id
+    const previousLength = previousMessagesLengthRef.current
+    const previousOldestId = oldestMessageIdRef.current
+    
+    // Update refs for next time
+    previousMessagesLengthRef.current = messages.length
+    oldestMessageIdRef.current = currentOldestMessageId
+    
+    // If this is the first render with messages, scroll to bottom
+    if (previousLength === 0 && messages.length > 0) {
+      console.log("📜 [MESSAGE-THREAD] First messages loaded, scrolling to bottom")
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom(true)
+          setTimeout(() => scrollToBottom(true), 10)
+          setTimeout(() => scrollToBottom(true), 50)
+          setTimeout(() => scrollToBottom(true), 100)
+        })
+      })
+      return
+    }
+    
+    // If oldest message ID changed, we loaded old messages (prepended to array)
+    // In this case, DON'T scroll to bottom
+    if (previousOldestId !== null && currentOldestMessageId !== previousOldestId) {
+      console.log("📜 [MESSAGE-THREAD] Old messages loaded (oldest ID changed from", previousOldestId, "to", currentOldestMessageId, ") - NOT scrolling")
+      return
+    }
+    
+    // If we got here and length increased, new messages were added at the end
+    if (messages.length > previousLength) {
+      console.log("📜 [MESSAGE-THREAD] New messages added at end, scrolling to bottom")
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           console.log("📜 [EFFECT] DOM updated, scrolling to bottom")
@@ -203,7 +237,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         })
       })
     }
-  }, [messages.length, isLoading, isLoadingMore])
+  }, [messages, isLoading])
 
   // Only reload messages when socket reconnects after being disconnected
   useEffect(() => {
@@ -273,7 +307,6 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     if (isLoadingMore || !hasMoreMessages) return
     
     setIsLoadingMore(true)
-    isLoadingOldMessagesRef.current = true
     console.log('[MESSAGE-THREAD] 🔄 Loading more messages from offset:', currentOffset)
     
     // Guardar posición actual antes de cargar
@@ -338,11 +371,6 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       })
     } finally {
       setIsLoadingMore(false)
-      // Reset the flag after a delay to ensure scroll restoration completes
-      setTimeout(() => {
-        isLoadingOldMessagesRef.current = false
-        console.log('[MESSAGE-THREAD] ✅ Finished loading old messages, re-enabling auto-scroll')
-      }, 200)
     }
   }
 
