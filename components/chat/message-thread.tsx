@@ -719,7 +719,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                           : "dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 bg-blue-50 text-slate-800 border border-blue-200",
                       )}
                     >
-                      <div className="pr-14 sm:pr-16">
+                      <div className="pr-[52px]">
                         <MultimediaMessage
                           type={message.type || "text"}
                           message={message.message}
@@ -727,7 +727,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                           sender={message.sender}
                         />
                       </div>
-                      <p className={cn("text-[11px] sm:text-xs mt-0.5 absolute bottom-2 right-2 sm:right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
+                      <p className={cn("text-[11px] sm:text-xs mt-0.5 absolute bottom-2 right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
                         {formatMessageTime(message.created_at, userCountry)}
                       </p>
                     </div>

@@ -50,6 +50,8 @@ export function startRealtimeListener(io: Server) {
               m.bot_id,
               m.sender,
               m.message,
+              m.type,
+              m.url,
               m.created_at,
               b.user_id
             FROM messages m
@@ -80,6 +82,8 @@ export function startRealtimeListener(io: Server) {
             bot_id: messageData.bot_id,
             sender: messageData.sender,
             message: decryptedText,
+            type: messageData.type || 'text',
+            url: messageData.url || null,
             created_at: messageData.created_at
           }
 
