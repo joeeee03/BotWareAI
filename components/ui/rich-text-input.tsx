@@ -62,39 +62,98 @@ export function RichTextInput({
     return temp.textContent || ""
   }
 
-  // Update editor content when value changes externally
+  // Initialize content on mount
   useEffect(() => {
     if (!editorRef.current) return
+    if (value && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = textToHtml(value)
+    }
+  }, [])
+
+  // Update editor content when value changes externally (e.g., from parent reset)
+  useEffect(() => {
+    if (!editorRef.current || !value) return
     
     const currentText = htmlToText(editorRef.current.innerHTML)
-    if (currentText !== value) {
-      const selection = window.getSelection()
-      const range = selection?.rangeCount ? selection.getRangeAt(0) : null
-      const cursorOffset = range ? range.startOffset : 0
-      
+    // Only update if there's a significant difference (external change)
+    if (currentText !== value && Math.abs(currentText.length - value.length) > 1) {
       editorRef.current.innerHTML = textToHtml(value)
-      
-      // Restore cursor position
-      if (range && editorRef.current.childNodes.length > 0) {
-        try {
-          const newRange = document.createRange()
-          const textNode = editorRef.current.childNodes[0]
-          if (textNode) {
-            newRange.setStart(textNode, Math.min(cursorOffset, textNode.textContent?.length || 0))
-            newRange.collapse(true)
-            selection?.removeAllRanges()
-            selection?.addRange(newRange)
-          }
-        } catch (e) {
-          // Cursor positioning failed, that's ok
-        }
-      }
     }
   }, [value])
 
   const handleInput = () => {
     if (!editorRef.current) return
+    
+    // Save cursor position
+    const selection = window.getSelection()
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+    let cursorNode = range?.startContainer
+    let cursorOffset = range?.startOffset || 0
+    
+    // Get the plain text
     const newText = htmlToText(editorRef.current.innerHTML)
+    
+    // Check if text contains complete variables
+    const hasCompleteVariable = /\{(nombre|telefono)\}/i.test(newText)
+    
+    if (hasCompleteVariable) {
+      // Calculate actual cursor position in plain text
+      let textBeforeCursor = ""
+      if (cursorNode) {
+        const walker = document.createTreeWalker(
+          editorRef.current,
+          NodeFilter.SHOW_TEXT,
+          null
+        )
+        let node
+        while ((node = walker.nextNode())) {
+          if (node === cursorNode) {
+            textBeforeCursor += (node.textContent || "").substring(0, cursorOffset)
+            break
+          } else {
+            textBeforeCursor += node.textContent || ""
+          }
+        }
+      }
+      
+      // Re-render with styled variables
+      editorRef.current.innerHTML = textToHtml(newText)
+      
+      // Restore cursor position
+      const newWalker = document.createTreeWalker(
+        editorRef.current,
+        NodeFilter.SHOW_TEXT,
+        null
+      )
+      let charCount = 0
+      let targetNode = null
+      let targetOffset = 0
+      
+      let node
+      while ((node = newWalker.nextNode())) {
+        const nodeLength = node.textContent?.length || 0
+        if (charCount + nodeLength >= textBeforeCursor.length) {
+          targetNode = node
+          targetOffset = textBeforeCursor.length - charCount
+          break
+        }
+        charCount += nodeLength
+      }
+      
+      if (targetNode && selection && range) {
+        try {
+          const newRange = document.createRange()
+          newRange.setStart(targetNode, Math.min(targetOffset, targetNode.textContent?.length || 0))
+          newRange.collapse(true)
+          selection.removeAllRanges()
+          selection.addRange(newRange)
+        } catch (e) {
+          // Cursor positioning failed
+        }
+      }
+    }
+    
+    // Always notify parent of change
     onChange(newText)
   }
 
