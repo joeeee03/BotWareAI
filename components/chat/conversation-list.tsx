@@ -37,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { SettingsDialog } from "@/components/settings/settings-dialog"
 
 interface ConversationListProps {
   conversations: any[]
@@ -202,6 +203,12 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
             <p className="text-sm dark:text-slate-400 text-slate-600">{deduped.length} conversaciones activas</p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Settings Button */}
+            <SettingsDialog 
+              userEmail={user?.email || ''} 
+              displayName={displayName}
+            />
+            
             {/* User Avatar and Settings Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

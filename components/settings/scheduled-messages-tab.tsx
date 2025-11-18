@@ -1,0 +1,336 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Plus, Edit, Trash2, Calendar, Users, CheckCircle, XCircle, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { apiClient } from "@/lib/api-client"
+import { useToast } from "@/hooks/use-toast"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
+
+interface ScheduledMessage {
+  id: number
+  bot_id: number
+  conversation_ids: number[]
+  message: string
+  scheduled_for: string
+  status: string
+  sent_at?: string
+  error_message?: string
+  created_at: string
+}
+
+export function ScheduledMessagesTab() {
+  const [messages, setMessages] = useState<ScheduledMessage[]>([])
+  const [conversations, setConversations] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [filterStatus, setFilterStatus] = useState<string>("all")
+  
+  const [formData, setFormData] = useState({
+    message: "",
+    scheduled_date: "",
+    scheduled_time: "",
+    selected_conversations: [] as number[],
+  })
+
+  const { toast } = useToast()
+
+  useEffect(() => {
+    loadScheduledMessages()
+    loadConversations()
+  }, [])
+
+  const loadScheduledMessages = async () => {
+    try {
+      setIsLoading(true)
+      const response = await apiClient.getScheduledMessages()
+      setMessages(response.scheduled_messages || [])
+    } catch (error: any) {
+      toast({
+        title: "Error al cargar mensajes programados",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadConversations = async () => {
+    try {
+      const response = await apiClient.getConversations(100, 0)
+      setConversations(response.conversations || [])
+    } catch (error: any) {
+      console.error("Error loading conversations:", error)
+    }
+  }
+
+  const handleOpenDialog = () => {
+    // Set default date/time to tomorrow at 10:00
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const dateStr = tomorrow.toISOString().split('T')[0]
+    
+    setFormData({
+      message: "",
+      scheduled_date: dateStr,
+      scheduled_time: "10:00",
+      selected_conversations: [],
+    })
+    setIsDialogOpen(true)
+  }
+
+  const handleSchedule = async () => {
+    if (!formData.message.trim()) {
+      toast({ title: "Error", description: "El mensaje es requerido", variant: "destructive" })
+      return
+    }
+
+    if (formData.selected_conversations.length === 0) {
+      toast({ title: "Error", description: "Selecciona al menos una conversación", variant: "destructive" })
+      return
+    }
+
+    if (!formData.scheduled_date || !formData.scheduled_time) {
+      toast({ title: "Error", description: "Fecha y hora son requeridas", variant: "destructive" })
+      return
+    }
+
+    const scheduledFor = new Date(`${formData.scheduled_date}T${formData.scheduled_time}:00`)
+    
+    if (scheduledFor <= new Date()) {
+      toast({ title: "Error", description: "La fecha debe ser futura", variant: "destructive" })
+      return
+    }
+
+    try {
+      // Get bot_id from first conversation
+      const firstConv = conversations.find(c => c.id === formData.selected_conversations[0])
+      if (!firstConv) {
+        toast({ title: "Error", description: "No se encontró la conversación", variant: "destructive" })
+        return
+      }
+
+      await apiClient.createScheduledMessage(
+        firstConv.bot_id,
+        formData.selected_conversations,
+        formData.message,
+        scheduledFor.toISOString()
+      )
+      
+      toast({ title: "✅ Mensaje programado" })
+      setIsDialogOpen(false)
+      loadScheduledMessages()
+    } catch (error: any) {
+      toast({
+        title: "Error al programar",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCancel = async (id: number) => {
+    if (!confirm("¿Cancelar este mensaje programado?")) return
+
+    try {
+      await apiClient.cancelScheduledMessage(id)
+      toast({ title: "✅ Mensaje cancelado" })
+      loadScheduledMessages()
+    } catch (error: any) {
+      toast({
+        title: "Error al cancelar",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Pendiente</Badge>
+      case "sent":
+        return <Badge variant="default" className="gap-1 bg-green-600"><CheckCircle className="h-3 w-3" />Enviado</Badge>
+      case "failed":
+        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Fallido</Badge>
+      case "cancelled":
+        return <Badge variant="outline" className="gap-1">Cancelado</Badge>
+      default:
+        return <Badge>{status}</Badge>
+    }
+  }
+
+  const filteredMessages = filterStatus === "all" 
+    ? messages 
+    : messages.filter(m => m.status === filterStatus)
+
+  return (
+    <div className="space-y-4 h-full flex flex-col">
+      <div className="flex items-center gap-2">
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-700"
+        >
+          <option value="all">Todos</option>
+          <option value="pending">Pendientes</option>
+          <option value="sent">Enviados</option>
+          <option value="failed">Fallidos</option>
+          <option value="cancelled">Cancelados</option>
+        </select>
+        <Button onClick={handleOpenDialog} className="gap-2 ml-auto">
+          <Plus className="h-4 w-4" />
+          Programar Mensaje
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-auto space-y-3">
+        {isLoading ? (
+          <div className="text-center py-8 text-slate-500">Cargando...</div>
+        ) : filteredMessages.length === 0 ? (
+          <div className="text-center py-8 text-slate-500">
+            No hay mensajes programados
+          </div>
+        ) : (
+          filteredMessages.map((msg) => (
+            <Card key={msg.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base">
+                        <Calendar className="h-4 w-4 inline mr-1" />
+                        {format(new Date(msg.scheduled_for), "PPP 'a las' HH:mm", { locale: es })}
+                      </CardTitle>
+                      {getStatusBadge(msg.status)}
+                    </div>
+                    <CardDescription className="mt-2 flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {msg.conversation_ids.length} conversación(es)
+                    </CardDescription>
+                  </div>
+                  {msg.status === "pending" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleCancel(msg.id)}
+                      className="h-8 w-8 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                {msg.error_message && (
+                  <p className="text-xs text-red-600 mt-2">Error: {msg.error_message}</p>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Dialog para programar */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Programar Mensaje</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="message">Mensaje *</Label>
+              <Textarea
+                id="message"
+                placeholder="El mensaje a enviar..."
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_date">Fecha *</Label>
+                <Input
+                  id="scheduled_date"
+                  type="date"
+                  value={formData.scheduled_date}
+                  onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_time">Hora *</Label>
+                <Input
+                  id="scheduled_time"
+                  type="time"
+                  value={formData.scheduled_time}
+                  onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Destinatarios * (selecciona conversaciones)</Label>
+              <div className="border rounded-md p-3 max-h-60 overflow-auto space-y-2 dark:border-slate-700">
+                {conversations.length === 0 ? (
+                  <p className="text-sm text-slate-500">No hay conversaciones disponibles</p>
+                ) : (
+                  conversations.map((conv) => (
+                    <label key={conv.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={formData.selected_conversations.includes(conv.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              selected_conversations: [...formData.selected_conversations, conv.id],
+                            })
+                          } else {
+                            setFormData({
+                              ...formData,
+                              selected_conversations: formData.selected_conversations.filter(id => id !== conv.id),
+                            })
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{conv.customer_name || conv.customer_phone}</p>
+                        <p className="text-xs text-slate-500">{conv.customer_phone}</p>
+                      </div>
+                    </label>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-slate-500">
+                {formData.selected_conversations.length} seleccionada(s)
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSchedule}>
+              Programar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
