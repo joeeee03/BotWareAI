@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { Plus, Edit, Trash2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -12,6 +11,7 @@ import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 import { VariableInserter } from "@/components/ui/variable-inserter"
 import { MessageWithVariables } from "@/components/ui/message-with-variables"
+import { RichTextInput } from "@/components/ui/rich-text-input"
 
 interface Template {
   id: number
@@ -29,7 +29,6 @@ export function TemplatesTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
-  const messageTextareaRef = useRef<HTMLTextAreaElement>(null)
   
   const [formData, setFormData] = useState({
     title: "",
@@ -229,33 +228,22 @@ export function TemplatesTab() {
                 <Label htmlFor="message">Mensaje *</Label>
                 <VariableInserter
                   onInsert={(variable) => {
-                    const textarea = messageTextareaRef.current
-                    if (!textarea) return
-                    const cursorPos = textarea.selectionStart || formData.message.length
-                    const newMessage =
-                      formData.message.slice(0, cursorPos) + variable + formData.message.slice(cursorPos)
+                    const cursorPos = formData.message.length
+                    const newMessage = formData.message + variable
                     setFormData({ ...formData, message: newMessage })
-                    // Focus back and set cursor position
-                    setTimeout(() => {
-                      textarea.focus()
-                      const newPos = cursorPos + variable.length
-                      textarea.setSelectionRange(newPos, newPos)
-                    }, 0)
                   }}
                 />
               </div>
-              <Textarea
-                ref={messageTextareaRef}
-                id="message"
-                placeholder="El contenido del template... Usa el botón {} para insertar variables"
+              <RichTextInput
                 value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, message: value })}
+                placeholder="El contenido del template... Usa el botón {} para insertar variables"
                 rows={6}
               />
               {formData.message && (
                 <div className="mt-2 p-3 rounded-md bg-slate-50 dark:bg-slate-900 border dark:border-slate-700">
-                  <p className="text-xs text-slate-500 mb-1">Vista previa:</p>
-                  <MessageWithVariables text={formData.message} className="text-sm" />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">👁️ Vista previa con datos de ejemplo:</p>
+                  <MessageWithVariables text={formData.message} preview={true} className="text-sm" />
                 </div>
               )}
             </div>

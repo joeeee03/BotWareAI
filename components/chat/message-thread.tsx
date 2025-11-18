@@ -21,6 +21,7 @@ import { formatWhatsAppText } from "@/lib/whatsapp-formatter"
 import { formatMessageTime, getUserCountry, formatDateSeparator, isSameDayInTimezone } from "@/lib/timezone-utils"
 import { TemplatesMenu } from "./templates-menu"
 import { VariableInserter } from "@/components/ui/variable-inserter"
+import { RichTextInput } from "@/components/ui/rich-text-input"
 
 interface MessageThreadProps {
   conversation: any
@@ -657,29 +658,42 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                 searchQuery={templatesSearch}
               />
             )}
-            <Input
-              ref={inputRef}
-              value={inputMessage}
-              onChange={handleInputChange}
-              placeholder="Escribe un mensaje... (usa / para templates)"
-              disabled={isSending}
-              className="h-11 sm:h-10 text-base sm:text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-10"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              <VariableInserter
-                onInsert={(variable) => {
-                  const cursorPos = inputRef.current?.selectionStart || inputMessage.length
-                  const newMessage =
-                    inputMessage.slice(0, cursorPos) + variable + inputMessage.slice(cursorPos)
-                  setInputMessage(newMessage)
-                  // Focus back to input after insertion
-                  setTimeout(() => {
-                    inputRef.current?.focus()
-                    const newPos = cursorPos + variable.length
-                    inputRef.current?.setSelectionRange(newPos, newPos)
-                  }, 0)
+            <div className="relative">
+              <RichTextInput
+                value={inputMessage}
+                onChange={(value) => {
+                  setInputMessage(value)
+                  // Check for / to show templates menu
+                  if (value.endsWith('/')) {
+                    setShowTemplatesMenu(true)
+                    setTemplatesSearch('')
+                  } else if (value.includes('/')) {
+                    const lastSlashIndex = value.lastIndexOf('/')
+                    const searchTerm = value.slice(lastSlashIndex + 1)
+                    setTemplatesSearch(searchTerm)
+                  } else {
+                    setShowTemplatesMenu(false)
+                  }
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSendMessage(e as any)
+                  }
+                }}
+                placeholder="Escribe un mensaje... (usa / para templates)"
+                disabled={isSending}
+                singleLine={true}
+                className="h-11 sm:h-10 text-base sm:text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-10"
               />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <VariableInserter
+                  onInsert={(variable) => {
+                    const newMessage = inputMessage + variable
+                    setInputMessage(newMessage)
+                  }}
+                />
+              </div>
             </div>
           </div>
           <Button 
