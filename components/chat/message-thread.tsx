@@ -45,6 +45,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [currentOffset, setCurrentOffset] = useState(0)
+  const [isScrollBlocked, setIsScrollBlocked] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const previousMessagesLengthRef = useRef(0)
   const newestMessageIdRef = useRef<number | null>(null)
@@ -321,15 +322,18 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   }
 
   const loadMoreMessages = async () => {
-    if (isLoadingMore || !hasMoreMessages) return
+    if (isLoadingMore || !hasMoreMessages || isScrollBlocked) return
     
     setIsLoadingMore(true)
+    setIsScrollBlocked(true) // Bloquear scroll inmediatamente
     console.log('[MESSAGE-THREAD] 🔄 Loading more messages from offset:', currentOffset)
+    console.log('[MESSAGE-THREAD] 🔒 Scroll BLOCKED for 1 second')
     
     // Guardar posición actual antes de cargar
     const viewport = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement
     if (!viewport) {
       setIsLoadingMore(false)
+      setIsScrollBlocked(false)
       return
     }
     
@@ -377,9 +381,16 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
           viewport.scrollTop = newScrollTop
           
           console.log('[MESSAGE-THREAD] 📍 Scroll restored to:', viewport.scrollTop)
+          
+          // Desbloquear scroll después de 1 segundo
+          setTimeout(() => {
+            setIsScrollBlocked(false)
+            console.log('[MESSAGE-THREAD] 🔓 Scroll UNLOCKED')
+          }, 1000)
         }, 100)
       } else {
         setHasMoreMessages(false)
+        setIsScrollBlocked(false) // Desbloquear si no hay más mensajes
       }
     } catch (error: any) {
       console.error('[MESSAGE-THREAD] Error loading more messages:', error)
@@ -388,6 +399,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         description: error.message,
         variant: "destructive",
       })
+      setIsScrollBlocked(false) // Desbloquear en caso de error
     } finally {
       setIsLoadingMore(false)
     }
@@ -401,6 +413,12 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     if (!viewport) return
     
     const handleScroll = () => {
+      // Bloquear si está cargando o si scroll está bloqueado
+      if (isScrollBlocked) {
+        console.log('[MESSAGE-THREAD] 🚫 Scroll blocked, ignoring scroll event')
+        return
+      }
+      
       // Check if user scrolled to top (with 100px threshold)
       if (viewport.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
         console.log('[MESSAGE-THREAD] 📜 User scrolled to top, loading more messages')
@@ -410,7 +428,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     
     viewport.addEventListener('scroll', handleScroll)
     return () => viewport.removeEventListener('scroll', handleScroll)
-  }, [hasMoreMessages, isLoadingMore, currentOffset])
+  }, [hasMoreMessages, isLoadingMore, currentOffset, isScrollBlocked])
 
   const scrollToBottom = (instant = false) => {
     if (!scrollRef.current) {
