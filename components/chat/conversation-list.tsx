@@ -37,7 +37,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { SettingsDialog } from "@/components/settings/settings-dialog"
 
 interface ConversationListProps {
   conversations: any[]
@@ -143,17 +142,25 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
   }, [])
 
   const handleSaveGeneral = async () => {
-    // Save displayName and country locally
     try {
+      // Save displayName to database
+      if (displayName.trim()) {
+        await apiClient.updateDisplayName(displayName.trim())
+      }
+      
+      // Save displayName locally
       const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null
-      const user = raw ? JSON.parse(raw) : {}
-      user.name = displayName
-      if (typeof window !== "undefined") localStorage.setItem("user", JSON.stringify(user))
+      const localUser = raw ? JSON.parse(raw) : {}
+      localUser.name = displayName
+      if (typeof window !== "undefined") localStorage.setItem("user", JSON.stringify(localUser))
       
       // Save country selection
       setUserCountry(selectedCountry)
       
-      toast({ title: "Configuración guardada", variant: "default" })
+      // Update local state to refresh avatar immediately
+      setDisplayName(displayName.trim())
+      
+      toast({ title: "✅ Perfil actualizado", variant: "default" })
       setOpen(false)
       
       // Refresh page to apply timezone changes
@@ -203,21 +210,16 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
             <p className="text-sm dark:text-slate-400 text-slate-600">{deduped.length} conversaciones activas</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Settings Button */}
-            <SettingsDialog 
-              userEmail={user?.email || ''} 
-              displayName={displayName}
-            />
-            
-            {/* User Avatar and Settings Dropdown */}
+            {/* Settings Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold">
-                      {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 dark:hover:bg-slate-700 hover:bg-slate-100"
+                  title="Configuración"
+                >
+                  <Settings className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 dark:bg-slate-800/95 bg-white/95 backdrop-blur-xl dark:border-slate-700/50 border-blue-200/50 shadow-2xl" align="end" forceMount>
@@ -256,6 +258,15 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* User Avatar (visual only) */}
+            <div className="relative h-10 w-10">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold">
+                  {displayName ? displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'U')}
+                </AvatarFallback>
+              </Avatar>
+            </div>
 
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -280,7 +291,7 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                     <div className="flex items-center gap-3">
                       <Avatar className="h-16 w-16">
                         <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold text-lg">
-                          {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                          {displayName ? displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'U')}
                         </AvatarFallback>
                       </Avatar>
                       <div>
