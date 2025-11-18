@@ -76,8 +76,9 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
       replaced: messageWithVariables
     })
 
-    // Encrypt message before saving to database (only if message exists)
-    const encryptedMessage = message ? encrypt(messageWithVariables) : null
+    // Encrypt message before saving to database (use empty string if no message)
+    // This prevents NULL constraint violation when sending image-only messages
+    const encryptedMessage = message ? encrypt(messageWithVariables) : encrypt('')
 
     // Insert message into database as sender='bot' (bot sends to customer) with circuit breaker
     const messageResult = await withDatabaseCircuitBreaker(() =>
