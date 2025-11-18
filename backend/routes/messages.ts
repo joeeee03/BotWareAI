@@ -105,18 +105,10 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
       messageLength: decryptedMessageForEmit.message?.length,
     })
     
-    // Emit message:new for all messages (no optimistic UI)
-    io.to(`conversation_${conversationId}`).emit("message:new", decryptedMessageForEmit)
+    // NO emitir aquí - el realtime-listener lo hará automáticamente cuando detecte el INSERT
+    // Esto evita duplicados
     
-    // Emit global conversation update to user room for conversation list reordering
-    io.to(`user_${req.user.user_id}`).emit("conversation:updated", {
-      conversationId,
-      lastMessage: decryptedMessageForEmit.message,
-      lastMessageTime: decryptedMessageForEmit.created_at,
-      newMessage: decryptedMessageForEmit
-    })
-    
-    console.log("✅ [SEND-MESSAGE] Message saved and message:new emitted")
+    console.log("✅ [SEND-MESSAGE] Message saved to DB - realtime-listener will emit events")
 
     // Send to Meta API using decrypted credentials
     console.log('[SEND-MESSAGE] Sending to Meta API...', {
