@@ -207,7 +207,7 @@ router.get("/me", authenticateToken, async (req: AuthRequest, res) => {
   }
 
   try {
-    const userResult = await pool.query("SELECT id, email, created_at, require_password_change FROM users WHERE id = $1", [req.user.user_id])
+    const userResult = await pool.query("SELECT id, email, display_name, created_at, require_password_change FROM users WHERE id = $1", [req.user.user_id])
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: "User not found" })
@@ -229,6 +229,7 @@ router.get("/me", authenticateToken, async (req: AuthRequest, res) => {
       user: {
         id: user.id,
         email: user.email,
+        display_name: user.display_name,
         created_at: user.created_at,
         requirePasswordChange
       }

@@ -161,7 +161,7 @@ export function ProfileTab({ userEmail, initialDisplayName, onDisplayNameUpdate 
               <SelectTrigger id="country">
                 <SelectValue placeholder="Selecciona tu país" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent side="bottom" align="start" className="max-h-[300px]">
                 {countryList.map((country) => (
                   <SelectItem key={country.code} value={country.code}>
                     {country.name}

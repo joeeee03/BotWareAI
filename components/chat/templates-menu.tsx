@@ -75,49 +75,68 @@ export function TemplatesMenu({ onSelect, onClose, searchQuery }: TemplatesMenuP
 
   if (isLoading) {
     return (
-      <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-md">
-        <p className="text-sm text-slate-500">Cargando templates...</p>
+      <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-slate-800 border-2 dark:border-blue-500 border-blue-400 rounded-xl shadow-2xl p-4 min-w-[350px] max-w-md backdrop-blur-xl">
+        <p className="text-sm text-slate-500 flex items-center gap-2">
+          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+          Cargando templates...
+        </p>
       </div>
     )
   }
 
   if (filteredTemplates.length === 0) {
     return (
-      <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-xl p-3 min-w-[300px] max-w-md">
-        <p className="text-sm text-slate-500">
-          {searchQuery ? "No se encontraron templates" : "No hay templates. Créalos en Configuración ⚙️"}
+      <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-slate-800 border-2 dark:border-slate-600 border-slate-300 rounded-xl shadow-2xl p-4 min-w-[350px] max-w-md backdrop-blur-xl">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          {searchQuery ? (
+            <>
+              🔍 No se encontraron templates para "<span className="font-semibold">{searchQuery}</span>"
+            </>
+          ) : (
+            <>
+              💡 No hay templates. Créalos en <span className="font-semibold">Configuración ⚙️</span>
+            </>
+          )}
         </p>
       </div>
     )
   }
 
   return (
-    <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-2xl overflow-hidden min-w-[300px] max-w-md">
-      <div className="p-2 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-        <p className="text-xs text-slate-500 flex items-center gap-1">
-          <MessageSquare className="h-3 w-3" />
-          Templates disponibles (↑↓ para navegar, Enter para seleccionar)
+    <div className="absolute bottom-full mb-2 left-0 bg-white/95 dark:bg-slate-800/95 border-2 dark:border-blue-500 border-blue-400 rounded-xl shadow-2xl overflow-hidden min-w-[350px] max-w-md backdrop-blur-xl">
+      <div className="px-4 py-3 border-b dark:border-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800">
+        <p className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-blue-500" />
+          <span>Templates disponibles {filteredTemplates.length > 0 && `(${filteredTemplates.length})`}</span>
+        </p>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+          ↑↓ navegar • Enter seleccionar • Esc cerrar
         </p>
       </div>
-      <div className="max-h-64 overflow-y-auto">
+      <div className="max-h-72 overflow-y-auto">
         {filteredTemplates.map((template, index) => (
           <button
             key={template.id}
             onClick={() => onSelect(template.message)}
             className={`
-              w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors
-              ${index === selectedIndex ? "bg-blue-100 dark:bg-slate-700" : ""}
+              w-full text-left px-4 py-3 transition-all duration-150 border-b last:border-b-0 dark:border-slate-700/50 border-slate-200/50
+              ${index === selectedIndex 
+                ? "bg-blue-100 dark:bg-blue-900/30 border-l-4 border-l-blue-500" 
+                : "hover:bg-slate-50 dark:hover:bg-slate-700/50"
+              }
             `}
           >
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-medium text-sm">{template.title}</p>
+            <div className="flex items-center justify-between gap-3 mb-1">
+              <p className={`font-semibold text-sm ${index === selectedIndex ? "text-blue-700 dark:text-blue-300" : "text-slate-800 dark:text-slate-200"}`}>
+                {template.title}
+              </p>
               {template.shortcut && (
-                <span className="text-xs bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded">
-                  {template.shortcut}
+                <span className="text-[10px] font-mono bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-md">
+                  /{template.shortcut}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-1">
+            <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
               {template.message}
             </p>
           </button>

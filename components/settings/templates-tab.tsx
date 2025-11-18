@@ -32,7 +32,6 @@ export function TemplatesTab() {
     title: "",
     message: "",
     shortcut: "",
-    category: "",
   })
 
   const { toast } = useToast()
@@ -64,11 +63,10 @@ export function TemplatesTab() {
         title: template.title,
         message: template.message,
         shortcut: template.shortcut || "",
-        category: template.category || "",
       })
     } else {
       setEditingTemplate(null)
-      setFormData({ title: "", message: "", shortcut: "", category: "" })
+      setFormData({ title: "", message: "", shortcut: "" })
     }
     setIsDialogOpen(true)
   }
@@ -89,16 +87,14 @@ export function TemplatesTab() {
           editingTemplate.id,
           formData.title,
           formData.message,
-          formData.shortcut || undefined,
-          formData.category || undefined
+          formData.shortcut || undefined
         )
         toast({ title: "✅ Template actualizado" })
       } else {
         await apiClient.createTemplate(
           formData.title,
           formData.message,
-          formData.shortcut || undefined,
-          formData.category || undefined
+          formData.shortcut || undefined
         )
         toast({ title: "✅ Template creado" })
       }
@@ -199,11 +195,6 @@ export function TemplatesTab() {
                 <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
                   {template.message}
                 </p>
-                {template.category && (
-                  <span className="inline-block mt-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs rounded">
-                    {template.category}
-                  </span>
-                )}
               </CardContent>
             </Card>
           ))
@@ -240,28 +231,18 @@ export function TemplatesTab() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="shortcut">Atajo (opcional)</Label>
-                <Input
-                  id="shortcut"
-                  placeholder="/hola"
-                  value={formData.shortcut}
-                  onChange={(e) => setFormData({ ...formData, shortcut: e.target.value })}
-                  maxLength={20}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoría (opcional)</Label>
-                <Input
-                  id="category"
-                  placeholder="Ej: saludo"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  maxLength={50}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="shortcut">Atajo (opcional)</Label>
+              <Input
+                id="shortcut"
+                placeholder="Ej: hola (sin necesidad del /)"
+                value={formData.shortcut}
+                onChange={(e) => setFormData({ ...formData, shortcut: e.target.value })}
+                maxLength={20}
+              />
+              <p className="text-xs text-slate-500">
+                Úsalo escribiendo / en el chat
+              </p>
             </div>
           </div>
 

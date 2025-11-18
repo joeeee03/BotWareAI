@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Edit, Trash2, Calendar, Users, CheckCircle, XCircle, Clock } from "lucide-react"
+import { Plus, Edit, Trash2, Calendar, Users, CheckCircle, XCircle, Clock, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -32,6 +32,7 @@ export function ScheduledMessagesTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [editingMessage, setEditingMessage] = useState<ScheduledMessage | null>(null)
   
   const [formData, setFormData] = useState({
     message: "",
@@ -72,22 +73,36 @@ export function ScheduledMessagesTab() {
     }
   }
 
-  const handleOpenDialog = () => {
-    // Set default date/time to tomorrow at 10:00
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const dateStr = tomorrow.toISOString().split('T')[0]
-    
-    setFormData({
-      message: "",
-      scheduled_date: dateStr,
-      scheduled_time: "10:00",
-      selected_conversations: [],
-    })
+  const handleOpenDialog = (message?: ScheduledMessage) => {
+    if (message) {
+      // Editing existing message
+      setEditingMessage(message)
+      const scheduled = new Date(message.scheduled_for)
+      setFormData({
+        message: message.message,
+        scheduled_date: scheduled.toISOString().split('T')[0],
+        scheduled_time: scheduled.toTimeString().slice(0, 5),
+        selected_conversations: message.conversation_ids,
+      })
+    } else {
+      // Creating new message - set default to now + 1 minute
+      setEditingMessage(null)
+      const now = new Date()
+      now.setMinutes(now.getMinutes() + 1)
+      const dateStr = now.toISOString().split('T')[0]
+      const timeStr = now.toTimeString().slice(0, 5)
+      
+      setFormData({
+        message: "",
+        scheduled_date: dateStr,
+        scheduled_time: timeStr,
+        selected_conversations: [],
+      })
+    }
     setIsDialogOpen(true)
   }
 
-  const handleSchedule = async () => {
+  const handleSchedule = async (sendNow = false) => {
     if (!formData.message.trim()) {
       toast({ title: "Error", description: "El mensaje es requerido", variant: "destructive" })
       return
@@ -98,16 +113,21 @@ export function ScheduledMessagesTab() {
       return
     }
 
-    if (!formData.scheduled_date || !formData.scheduled_time) {
+    if (!sendNow && (!formData.scheduled_date || !formData.scheduled_time)) {
       toast({ title: "Error", description: "Fecha y hora son requeridas", variant: "destructive" })
       return
     }
 
-    const scheduledFor = new Date(`${formData.scheduled_date}T${formData.scheduled_time}:00`)
-    
-    if (scheduledFor <= new Date()) {
-      toast({ title: "Error", description: "La fecha debe ser futura", variant: "destructive" })
-      return
+    let scheduledFor: Date
+    if (sendNow) {
+      scheduledFor = new Date()
+    } else {
+      scheduledFor = new Date(`${formData.scheduled_date}T${formData.scheduled_time}:00`)
+      
+      if (scheduledFor <= new Date()) {
+        toast({ title: "Error", description: "La fecha y hora deben ser futuras", variant: "destructive" })
+        return
+      }
     }
 
     try {
@@ -118,19 +138,43 @@ export function ScheduledMessagesTab() {
         return
       }
 
-      await apiClient.createScheduledMessage(
-        firstConv.bot_id,
-        formData.selected_conversations,
-        formData.message,
-        scheduledFor.toISOString()
-      )
+      if (editingMessage && sendNow) {
+        // Send now: cancel old and create new with current time
+        await apiClient.cancelScheduledMessage(editingMessage.id)
+        await apiClient.createScheduledMessage(
+          firstConv.bot_id,
+          formData.selected_conversations,
+          formData.message,
+          scheduledFor.toISOString()
+        )
+        toast({ title: "✅ Mensaje enviado" })
+      } else if (editingMessage) {
+        // Update: cancel old and recreate
+        await apiClient.cancelScheduledMessage(editingMessage.id)
+        await apiClient.createScheduledMessage(
+          firstConv.bot_id,
+          formData.selected_conversations,
+          formData.message,
+          scheduledFor.toISOString()
+        )
+        toast({ title: "✅ Mensaje actualizado" })
+      } else {
+        // Create new scheduled message
+        await apiClient.createScheduledMessage(
+          firstConv.bot_id,
+          formData.selected_conversations,
+          formData.message,
+          scheduledFor.toISOString()
+        )
+        toast({ title: "✅ Mensaje programado" })
+      }
       
-      toast({ title: "✅ Mensaje programado" })
       setIsDialogOpen(false)
+      setEditingMessage(null)
       loadScheduledMessages()
     } catch (error: any) {
       toast({
-        title: "Error al programar",
+        title: sendNow ? "Error al enviar" : "Error al programar",
         description: error.message,
         variant: "destructive",
       })
@@ -186,7 +230,7 @@ export function ScheduledMessagesTab() {
           <option value="failed">Fallidos</option>
           <option value="cancelled">Cancelados</option>
         </select>
-        <Button onClick={handleOpenDialog} className="gap-2 ml-auto">
+        <Button onClick={() => handleOpenDialog()} className="gap-2 ml-auto">
           <Plus className="h-4 w-4" />
           Programar Mensaje
         </Button>
@@ -218,14 +262,26 @@ export function ScheduledMessagesTab() {
                     </CardDescription>
                   </div>
                   {msg.status === "pending" && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleCancel(msg.id)}
-                      className="h-8 w-8 text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenDialog(msg)}
+                        className="h-8 w-8"
+                        title="Editar"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCancel(msg.id)}
+                        className="h-8 w-8 text-red-600 hover:text-red-700"
+                        title="Cancelar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardHeader>
@@ -244,7 +300,7 @@ export function ScheduledMessagesTab() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Programar Mensaje</DialogTitle>
+            <DialogTitle>{editingMessage ? "Editar Mensaje Programado" : "Programar Mensaje"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -322,11 +378,17 @@ export function ScheduledMessagesTab() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => { setIsDialogOpen(false); setEditingMessage(null); }}>
               Cancelar
             </Button>
-            <Button onClick={handleSchedule}>
-              Programar
+            {editingMessage && (
+              <Button onClick={() => handleSchedule(true)} variant="secondary" className="gap-2">
+                <Send className="h-4 w-4" />
+                Enviar Ahora
+              </Button>
+            )}
+            <Button onClick={() => handleSchedule(false)}>
+              {editingMessage ? "Actualizar" : "Programar"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -131,17 +131,19 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
   
   const countryList = getCountryList()
 
-  // Load initial display name from localStorage user if present
+  // Load display name from database
   React.useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null
-      if (raw) {
-        const u = JSON.parse(raw)
-        if (u?.name || u?.customer_name) setDisplayName(u.name || u.customer_name)
+    const loadDisplayName = async () => {
+      try {
+        const response = await apiClient.getCurrentUser()
+        if (response.user?.display_name) {
+          setDisplayName(response.user.display_name)
+        }
+      } catch (error) {
+        console.error("Error loading display name:", error)
       }
-    } catch (e) {
-      // ignore
     }
+    loadDisplayName()
   }, [])
 
   const handleSaveGeneral = async () => {
@@ -286,14 +288,19 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
               onDisplayNameUpdate={(newName) => setDisplayName(newName)}
             />
             
-            {/* User Avatar (visual only) */}
-            <div className="relative h-10 w-10">
+            {/* User Avatar (clickable for profile) */}
+            <Button
+              variant="ghost"
+              className="relative h-10 w-10 rounded-full p-0"
+              onClick={() => { setSettingsActiveTab("profile"); setSettingsDialogOpen(true); }}
+              title="Mi Perfil"
+            >
               <Avatar className="h-10 w-10">
                 <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold">
                   {displayName ? displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'U')}
                 </AvatarFallback>
               </Avatar>
-            </div>
+            </Button>
 
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
