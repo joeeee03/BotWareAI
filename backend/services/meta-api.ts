@@ -226,7 +226,7 @@ export class MetaApiService {
   }
 
   /**
-   * Parse incoming webhook data from Meta
+   * Parse incoming webhook data from Meta (supports text, image, video, audio)
    */
   parseWebhook(body: any): {
     keyBot?: string
@@ -234,6 +234,8 @@ export class MetaApiService {
     customerName?: string
     message?: string
     messageId?: string
+    type?: 'text' | 'image' | 'video' | 'audio'
+    url?: string | null
   } | null {
     try {
       const entry = body.entry?.[0]
@@ -247,14 +249,45 @@ export class MetaApiService {
       const incomingMessage = value.messages[0]
       const contact = value.contacts?.[0]
 
+      // Detect message type and extract content
+      let messageType: 'text' | 'image' | 'video' | 'audio' = 'text'
+      let messageText = ''
+      let mediaUrl: string | null = null
+
+      if (incomingMessage.type === 'text') {
+        messageType = 'text'
+        messageText = incomingMessage.text?.body || ''
+      } else if (incomingMessage.type === 'image') {
+        messageType = 'image'
+        messageText = incomingMessage.image?.caption || ''
+        mediaUrl = incomingMessage.image?.id || null // Media ID to download later
+        console.log('[META-API] Received image message:', { mediaId: mediaUrl, caption: messageText })
+      } else if (incomingMessage.type === 'video') {
+        messageType = 'video'
+        messageText = incomingMessage.video?.caption || ''
+        mediaUrl = incomingMessage.video?.id || null
+        console.log('[META-API] Received video message:', { mediaId: mediaUrl, caption: messageText })
+      } else if (incomingMessage.type === 'audio') {
+        messageType = 'audio'
+        messageText = '[Audio]'
+        mediaUrl = incomingMessage.audio?.id || null
+        console.log('[META-API] Received audio message:', { mediaId: mediaUrl })
+      } else {
+        // Unknown type, log it
+        console.log('[META-API] Received unknown message type:', incomingMessage.type)
+        messageText = `[${incomingMessage.type}]`
+      }
+
       return {
         customerPhone: incomingMessage.from,
         customerName: contact?.profile?.name || null,
-        message: incomingMessage.text?.body || "",
+        message: messageText,
         messageId: incomingMessage.id,
+        type: messageType,
+        url: mediaUrl,
       }
     } catch (error) {
-      console.error("[v0] Failed to parse webhook:", error)
+      console.error("[META-API] Failed to parse webhook:", error)
       return null
     }
   }

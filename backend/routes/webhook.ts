@@ -25,7 +25,7 @@ router.post("/bot-message", webhookRateLimitMiddleware, async (req, res) => {
       return res.sendStatus(200)
     }
 
-    const { customerPhone, customerName, message, messageId } = webhookData
+    const { customerPhone, customerName, message, messageId, type, url } = webhookData
 
     // Extract key_bot from request (can be passed as query param or header)
     const keyBot = req.query.key_bot || req.headers["x-bot-key"]
@@ -37,7 +37,11 @@ router.post("/bot-message", webhookRateLimitMiddleware, async (req, res) => {
     // Generate unique task ID for queue
     const taskId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
-    console.log(`[WEBHOOK] 📥 Received message ${taskId} from ${customerPhone}`)
+    console.log(`[WEBHOOK] 📥 Received message ${taskId} from ${customerPhone}`, {
+      type: type || 'text',
+      hasUrl: !!url,
+      messagePreview: message?.substring(0, 50)
+    })
 
     // Capture values for async processing (TypeScript type narrowing)
     const keyBotValue = keyBot as string
@@ -45,6 +49,8 @@ router.post("/bot-message", webhookRateLimitMiddleware, async (req, res) => {
     const customerNameValue = customerName
     const messageValue = message
     const messageIdValue = messageId
+    const typeValue = type || 'text'
+    const urlValue = url || null
 
     // Add to processing queue and respond immediately (async processing)
     // This prevents webhook timeout and allows handling high message volumes
@@ -55,6 +61,8 @@ router.post("/bot-message", webhookRateLimitMiddleware, async (req, res) => {
         customerName: customerNameValue,
         message: messageValue,
         messageId: messageIdValue,
+        type: typeValue,
+        url: urlValue,
         taskId
       })
     })
@@ -82,9 +90,11 @@ async function processIncomingMessage(params: {
   customerName?: string | null
   message: string
   messageId?: string
+  type?: string
+  url?: string | null
   taskId: string
 }) {
-  const { keyBot, customerPhone, customerName, message, messageId, taskId } = params
+  const { keyBot, customerPhone, customerName, message, messageId, type, url, taskId } = params
   
   try {
     // Find bot by key_bot (using encrypted column) with circuit breaker
@@ -153,10 +163,10 @@ async function processIncomingMessage(params: {
     // Insert message as sender='user' (customer sent this message) with circuit breaker
     const messageResult = await withDatabaseCircuitBreaker(() =>
       pool.query(
-        `INSERT INTO messages (conversation_id, bot_id, sender, message, created_at)
-         VALUES ($1, $2, 'user', $3, NOW())
-         RETURNING id, conversation_id, bot_id, sender, message, created_at`,
-        [conversationId, bot.id, encryptedMessage],
+        `INSERT INTO messages (conversation_id, bot_id, sender, message, type, url, created_at)
+         VALUES ($1, $2, 'user', $3, $4, $5, NOW())
+         RETURNING id, conversation_id, bot_id, sender, message, type, url, created_at`,
+        [conversationId, bot.id, encryptedMessage, type || 'text', url || null],
       )
     )
 
@@ -179,7 +189,9 @@ async function processIncomingMessage(params: {
     
     const decryptedMessageForEmit = {
       ...newMessage,
-      message: decryptedText
+      message: decryptedText,
+      type: newMessage.type || 'text',
+      url: newMessage.url || null
     }
     
     console.log("📤 [WEBHOOK] Emitting message:new to room:", `conversation_${conversationId}`)
@@ -187,6 +199,8 @@ async function processIncomingMessage(params: {
       id: decryptedMessageForEmit.id,
       conversation_id: decryptedMessageForEmit.conversation_id,
       message: decryptedMessageForEmit.message,
+      type: decryptedMessageForEmit.type,
+      hasUrl: !!decryptedMessageForEmit.url,
       originalMessage: message
     })
     
