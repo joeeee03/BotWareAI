@@ -348,6 +348,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         currentOffset
       )
       console.log('[MESSAGE-THREAD] ✅ Loaded', response.messages.length, 'older messages')
+      console.log('[MESSAGE-THREAD] 📊 First message ID:', response.messages[0]?.id, 'Last message ID:', response.messages[response.messages.length - 1]?.id)
+      console.log('[MESSAGE-THREAD] 📊 Current messages array - First ID:', messages[0]?.id, 'Last ID:', messages[messages.length - 1]?.id)
       
       if (response.messages.length > 0) {
         // Store the first visible message ID to restore position

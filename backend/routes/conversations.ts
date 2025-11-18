@@ -64,10 +64,10 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
   }
 
   const { conversationId } = req.params
-  const { limit = 50, cursor } = req.query  // Cargar últimos 50 mensajes por defecto
+  const { limit = 50, offset = 0 } = req.query  // Usar offset en lugar de cursor
   
   console.log(`[MESSAGES] 📨 Loading messages for conversation ${conversationId}, user ${req.user.user_id}`)
-  console.log(`[MESSAGES] 📊 Limit: ${limit}, Cursor: ${cursor || 'none'}`)
+  console.log(`[MESSAGES] 📊 Limit: ${limit}, Offset: ${offset}`)
 
   try {
     // First verify that the conversation belongs to user's bot
@@ -83,33 +83,21 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
       return res.status(403).json({ error: "Access denied to this conversation" })
     }
 
-    // Get messages - IMPORTANTE: traer los ÚLTIMOS X mensajes, no los primeros
-    let query
-    let params
-
-    if (cursor) {
-      // Con cursor: traer mensajes DESPUÉS del cursor
-      query = `SELECT id, sender, message, created_at 
-               FROM messages 
-               WHERE conversation_id = $1 AND created_at > $2
-               ORDER BY created_at ASC 
-               LIMIT $3`
-      params = [conversationId, cursor, limit]
-    } else {
-      // Sin cursor: traer los ÚLTIMOS X mensajes (subquery DESC + LIMIT, luego ASC)
-      query = `
+    // Get messages usando offset
+    // Si offset = 0: traer los ÚLTIMOS 50 mensajes
+    // Si offset = 50: traer los 50 mensajes ANTERIORES a esos (mensajes 50-99 desde el final)
+    const query = `
+      SELECT id, sender, message, created_at 
+      FROM (
         SELECT id, sender, message, created_at 
-        FROM (
-          SELECT id, sender, message, created_at 
-          FROM messages 
-          WHERE conversation_id = $1
-          ORDER BY created_at DESC 
-          LIMIT $2
-        ) AS latest_messages
-        ORDER BY created_at ASC
-      `
-      params = [conversationId, limit]
-    }
+        FROM messages 
+        WHERE conversation_id = $1
+        ORDER BY created_at DESC 
+        LIMIT $2 OFFSET $3
+      ) AS latest_messages
+      ORDER BY created_at ASC
+    `
+    const params = [conversationId, limit, offset]
 
     const messagesResult = await pool.query(query, params)
     console.log(`[MESSAGES] 📊 Found ${messagesResult.rows.length} messages in DB for conversation ${conversationId}`)
