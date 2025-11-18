@@ -59,7 +59,7 @@ export function VariableInserter({ onInsert, className = "" }: VariableInserterP
       </Button>
 
       {isOpen && (
-        <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-slate-800 border-2 dark:border-blue-500 border-blue-400 rounded-lg shadow-2xl overflow-hidden min-w-[220px] z-50 backdrop-blur-xl">
+        <div className="absolute top-full mt-2 right-0 bg-white dark:bg-slate-800 border-2 dark:border-blue-500 border-blue-400 rounded-lg shadow-2xl overflow-hidden min-w-[220px] z-50 backdrop-blur-xl">
           <div className="px-3 py-2 border-b dark:border-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800">
             <p className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <Braces className="h-3 w-3 text-blue-500" />
