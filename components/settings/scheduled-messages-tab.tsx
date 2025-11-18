@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Plus, Edit, Trash2, Calendar, Users, CheckCircle, XCircle, Clock, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,8 @@ import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { VariableInserter } from "@/components/ui/variable-inserter"
+import { MessageWithVariables } from "@/components/ui/message-with-variables"
 
 interface ScheduledMessage {
   id: number
@@ -33,6 +35,7 @@ export function ScheduledMessagesTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [editingMessage, setEditingMessage] = useState<ScheduledMessage | null>(null)
+  const messageTextareaRef = useRef<HTMLTextAreaElement>(null)
   
   const [formData, setFormData] = useState({
     message: "",
@@ -286,7 +289,7 @@ export function ScheduledMessagesTab() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                <MessageWithVariables text={msg.message} className="text-sm whitespace-pre-wrap" />
                 {msg.error_message && (
                   <p className="text-xs text-red-600 mt-2">Error: {msg.error_message}</p>
                 )}
@@ -305,14 +308,39 @@ export function ScheduledMessagesTab() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="message">Mensaje *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="message">Mensaje *</Label>
+                <VariableInserter
+                  onInsert={(variable) => {
+                    const textarea = messageTextareaRef.current
+                    if (!textarea) return
+                    const cursorPos = textarea.selectionStart || formData.message.length
+                    const newMessage =
+                      formData.message.slice(0, cursorPos) + variable + formData.message.slice(cursorPos)
+                    setFormData({ ...formData, message: newMessage })
+                    // Focus back and set cursor position
+                    setTimeout(() => {
+                      textarea.focus()
+                      const newPos = cursorPos + variable.length
+                      textarea.setSelectionRange(newPos, newPos)
+                    }, 0)
+                  }}
+                />
+              </div>
               <Textarea
+                ref={messageTextareaRef}
                 id="message"
-                placeholder="El mensaje a enviar..."
+                placeholder="El mensaje a enviar... Usa el botón {} para insertar variables"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 rows={4}
               />
+              {formData.message && (
+                <div className="mt-2 p-3 rounded-md bg-slate-50 dark:bg-slate-900 border dark:border-slate-700">
+                  <p className="text-xs text-slate-500 mb-1">Vista previa:</p>
+                  <MessageWithVariables text={formData.message} className="text-sm" />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

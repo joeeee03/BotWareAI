@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Plus, Edit, Trash2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
+import { VariableInserter } from "@/components/ui/variable-inserter"
+import { MessageWithVariables } from "@/components/ui/message-with-variables"
 
 interface Template {
   id: number
@@ -27,6 +29,7 @@ export function TemplatesTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
+  const messageTextareaRef = useRef<HTMLTextAreaElement>(null)
   
   const [formData, setFormData] = useState({
     title: "",
@@ -192,9 +195,10 @@ export function TemplatesTab() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-                  {template.message}
-                </p>
+                <MessageWithVariables 
+                  text={template.message}
+                  className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap"
+                />
               </CardContent>
             </Card>
           ))
@@ -221,14 +225,39 @@ export function TemplatesTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Mensaje *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="message">Mensaje *</Label>
+                <VariableInserter
+                  onInsert={(variable) => {
+                    const textarea = messageTextareaRef.current
+                    if (!textarea) return
+                    const cursorPos = textarea.selectionStart || formData.message.length
+                    const newMessage =
+                      formData.message.slice(0, cursorPos) + variable + formData.message.slice(cursorPos)
+                    setFormData({ ...formData, message: newMessage })
+                    // Focus back and set cursor position
+                    setTimeout(() => {
+                      textarea.focus()
+                      const newPos = cursorPos + variable.length
+                      textarea.setSelectionRange(newPos, newPos)
+                    }, 0)
+                  }}
+                />
+              </div>
               <Textarea
+                ref={messageTextareaRef}
                 id="message"
-                placeholder="El contenido del template..."
+                placeholder="El contenido del template... Usa el botón {} para insertar variables"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 rows={6}
               />
+              {formData.message && (
+                <div className="mt-2 p-3 rounded-md bg-slate-50 dark:bg-slate-900 border dark:border-slate-700">
+                  <p className="text-xs text-slate-500 mb-1">Vista previa:</p>
+                  <MessageWithVariables text={formData.message} className="text-sm" />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

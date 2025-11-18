@@ -6,6 +6,7 @@ import pool from "../config/database.js"
 import { metaApiService } from "./meta-api.js"
 import { decrypt, encrypt } from "../utils/message-decryption.js"
 import { io } from "../server.js"
+import { replaceVariables } from "../utils/variable-replacer.js"
 
 const SCHEDULER_INTERVAL_MS = 60000 // Check every 1 minute
 
@@ -74,9 +75,9 @@ async function sendScheduledMessage(scheduledMsg: any) {
     // Send to each conversation
     for (const conversationId of conversation_ids) {
       try {
-        // Get customer phone from conversation
+        // Get customer data from conversation
         const convResult = await pool.query(
-          'SELECT customer_phone FROM conversations WHERE id = $1',
+          'SELECT customer_phone, customer_name FROM conversations WHERE id = $1',
           [conversationId]
         )
 
@@ -86,24 +87,35 @@ async function sendScheduledMessage(scheduledMsg: any) {
           continue
         }
 
-        const customerPhone = convResult.rows[0].customer_phone
+        const { customer_phone: customerPhone, customer_name: customerName } = convResult.rows[0]
 
-        // Send via WhatsApp API using metaApiService
+        // Replace variables with customer data for personalized message
+        const personalizedMessage = replaceVariables(message, {
+          customer_name: customerName,
+          customer_phone: customerPhone
+        })
+
+        console.log(`[MESSAGE-SCHEDULER] 🔄 Message personalized for ${customerName || customerPhone}:`, {
+          original: message,
+          personalized: personalizedMessage
+        })
+
+        // Send via WhatsApp API using metaApiService with personalized message
         const metaResponse = await metaApiService.sendTextMessage({
           phoneNumberId: numberId,
           accessToken: jwtToken,
           to: customerPhone,
-          message: message,
+          message: personalizedMessage,
         })
 
         if (!metaResponse.success) {
           throw new Error(metaResponse.error || 'Failed to send message')
         }
 
-        // Encrypt message before saving to database
-        const encryptedMessage = encrypt(message)
+        // Encrypt personalized message before saving to database
+        const encryptedMessage = encrypt(personalizedMessage)
 
-        // Save message to database
+        // Save personalized message to database
         const messageResult = await pool.query(
           `INSERT INTO messages (conversation_id, bot_id, sender, message, created_at)
            VALUES ($1, $2, 'bot', $3, NOW())
@@ -116,7 +128,7 @@ async function sendScheduledMessage(scheduledMsg: any) {
         // Emit Socket.IO events for real-time updates
         const decryptedMessage = {
           ...newMessage,
-          message: message // Use original unencrypted message for frontend
+          message: personalizedMessage // Use personalized message for frontend
         }
 
         // Emit to conversation room
@@ -125,7 +137,7 @@ async function sendScheduledMessage(scheduledMsg: any) {
         // Emit to user room for conversation list update
         io.to(`user_${scheduledMsg.user_id}`).emit("conversation:updated", {
           conversationId,
-          lastMessage: message,
+          lastMessage: personalizedMessage,
           lastMessageTime: newMessage.created_at,
           newMessage: decryptedMessage
         })

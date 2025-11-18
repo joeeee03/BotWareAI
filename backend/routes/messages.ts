@@ -10,6 +10,7 @@ import { io } from "../server.js"
 import { metaApiService } from "../services/meta-api.js"
 import { encrypt, decrypt } from "../utils/message-decryption.js"
 import { withDatabaseCircuitBreaker, withMetaApiCircuitBreaker } from "../services/circuit-breaker.js"
+import { replaceVariables } from "../utils/variable-replacer.js"
 
 const router: Router = express.Router()
 
@@ -37,6 +38,7 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
           c.id,
           c.bot_id,
           c.customer_phone,
+          c.customer_name,
           b.number_id_encrypted as phone_number_id,
           b.jwt_token_encrypted as access_token
         FROM conversations c
@@ -63,8 +65,19 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
 
     console.log('[SEND-MESSAGE] Bot credentials decrypted successfully')
 
+    // Replace variables with customer data
+    const messageWithVariables = replaceVariables(message, {
+      customer_name: conversation.customer_name,
+      customer_phone: conversation.customer_phone
+    })
+
+    console.log('[SEND-MESSAGE] Variables replaced:', { 
+      original: message,
+      replaced: messageWithVariables
+    })
+
     // Encrypt message before saving to database
-    const encryptedMessage = encrypt(message)
+    const encryptedMessage = encrypt(messageWithVariables)
 
     // Insert message into database as sender='bot' (bot sends to customer) with circuit breaker
     const messageResult = await withDatabaseCircuitBreaker(() =>
@@ -117,13 +130,13 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
       messageLength: message.length
     })
 
-    // Send to Meta API with circuit breaker protection
+    // Send to Meta API with circuit breaker protection (with variables replaced)
     const metaResponse = await withMetaApiCircuitBreaker(() =>
       metaApiService.sendTextMessage({
         phoneNumberId: phoneNumberId,
         accessToken: accessToken,
         to: conversation.customer_phone,
-        message: message,
+        message: messageWithVariables,
       })
     ).catch((error) => {
       // If circuit is open, return a safe fallback
