@@ -202,7 +202,7 @@ export default function ChatsPage() {
       {/* En móvil: se oculta cuando hay conversación seleccionada */}
       <div className={`
         ${selectedConversation ? 'hidden md:flex' : 'flex'} 
-        w-full md:w-96 md:min-w-[384px] md:max-w-[384px] 
+        w-full md:w-[400px] md:min-w-[400px] md:max-w-[400px] 
         border-r dark:border-slate-700/50 border-blue-200/50 
         flex-shrink-0 dark:bg-slate-800/30 bg-white/90 backdrop-blur-xl 
         z-20 shadow-2xl transition-all duration-300 ease-out
