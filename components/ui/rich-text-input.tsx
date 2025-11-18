@@ -62,22 +62,74 @@ export function RichTextInput({
     return temp.textContent || ""
   }
 
-  // Initialize content on mount
+  // Update editor content when value changes (including initialization)
   useEffect(() => {
     if (!editorRef.current) return
-    if (value && !editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = textToHtml(value)
-    }
-  }, [])
-
-  // Update editor content when value changes externally (e.g., from parent reset)
-  useEffect(() => {
-    if (!editorRef.current || !value) return
     
     const currentText = htmlToText(editorRef.current.innerHTML)
-    // Only update if there's a significant difference (external change)
-    if (currentText !== value && Math.abs(currentText.length - value.length) > 1) {
+    
+    // If value is different from current text, update
+    if (value !== currentText) {
+      // Save cursor position before update
+      const selection = window.getSelection()
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+      
+      // Calculate cursor position in plain text
+      let textBeforeCursor = 0
+      if (range && range.startContainer) {
+        const walker = document.createTreeWalker(
+          editorRef.current,
+          NodeFilter.SHOW_TEXT,
+          null
+        )
+        let node
+        while ((node = walker.nextNode())) {
+          if (node === range.startContainer) {
+            textBeforeCursor += range.startOffset
+            break
+          } else {
+            textBeforeCursor += node.textContent?.length || 0
+          }
+        }
+      }
+      
+      // Update HTML with styled variables
       editorRef.current.innerHTML = textToHtml(value)
+      
+      // Restore cursor if we had one
+      if (textBeforeCursor > 0 && document.activeElement === editorRef.current) {
+        const newWalker = document.createTreeWalker(
+          editorRef.current,
+          NodeFilter.SHOW_TEXT,
+          null
+        )
+        let charCount = 0
+        let targetNode = null
+        let targetOffset = 0
+        
+        let node
+        while ((node = newWalker.nextNode())) {
+          const nodeLength = node.textContent?.length || 0
+          if (charCount + nodeLength >= textBeforeCursor) {
+            targetNode = node
+            targetOffset = textBeforeCursor - charCount
+            break
+          }
+          charCount += nodeLength
+        }
+        
+        if (targetNode && selection) {
+          try {
+            const newRange = document.createRange()
+            newRange.setStart(targetNode, Math.min(targetOffset, targetNode.textContent?.length || 0))
+            newRange.collapse(true)
+            selection.removeAllRanges()
+            selection.addRange(newRange)
+          } catch (e) {
+            // Cursor positioning failed
+          }
+        }
+      }
     }
   }, [value])
 
