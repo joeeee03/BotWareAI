@@ -87,9 +87,9 @@ router.get("/:conversationId/messages", authenticateToken, requirePasswordChange
     // Si offset = 0: traer los ÚLTIMOS 50 mensajes
     // Si offset = 50: traer los 50 mensajes ANTERIORES a esos (mensajes 50-99 desde el final)
     const query = `
-      SELECT id, sender, message, created_at 
+      SELECT id, sender, message, type, url, created_at 
       FROM (
-        SELECT id, sender, message, created_at 
+        SELECT id, sender, message, type, url, created_at 
         FROM messages 
         WHERE conversation_id = $1
         ORDER BY created_at DESC 

@@ -15,13 +15,14 @@ import { Input } from "@/components/ui/input"
 import { apiClient } from "@/lib/api-client"
 import { getSocket } from "@/lib/socket-client"
 import { useToast } from "@/hooks/use-toast"
-import { Send } from "lucide-react"
+import { Send, Image as ImageIcon, Video, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatWhatsAppText } from "@/lib/whatsapp-formatter"
 import { formatMessageTime, getUserCountry, formatDateSeparator, isSameDayInTimezone } from "@/lib/timezone-utils"
 import { TemplatesMenu } from "./templates-menu"
 import { VariableInserter } from "@/components/ui/variable-inserter"
 import { RichTextInput } from "@/components/ui/rich-text-input"
+import { MultimediaMessage } from "./multimedia-message"
 
 interface MessageThreadProps {
   conversation: any
@@ -35,6 +36,8 @@ interface Message {
   conversation_id: number
   sender: "user" | "bot"
   message: string
+  type?: "text" | "image" | "video" | "audio"
+  url?: string | null
   created_at: string
   tempId?: string
   isPending?: boolean
@@ -51,6 +54,9 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const [isScrollBlocked, setIsScrollBlocked] = useState(false)
   const [showTemplatesMenu, setShowTemplatesMenu] = useState(false)
   const [templatesSearch, setTemplatesSearch] = useState("")
+  const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const [attachedFilePreview, setAttachedFilePreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const previousMessagesLengthRef = useRef(0)
@@ -480,10 +486,58 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     inputRef.current?.focus()
   }
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (type === 'image' && !file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona un archivo de imagen válido",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (type === 'video' && !file.type.startsWith('video/')) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona un archivo de video válido",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate file size (50MB max)
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "El archivo es demasiado grande. Máximo 50MB",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setAttachedFile(file)
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file)
+    setAttachedFilePreview(previewUrl)
+  }
+
+  const removeAttachedFile = () => {
+    if (attachedFilePreview) {
+      URL.revokeObjectURL(attachedFilePreview)
+    }
+    setAttachedFile(null)
+    setAttachedFilePreview(null)
+  }
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!inputMessage.trim() || isSending) return
+    if ((!inputMessage.trim() && !attachedFile) || isSending) return
 
     const messageText = inputMessage.trim()
     setInputMessage("")
@@ -492,7 +546,39 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     setIsSending(true)
 
     try {
-      await apiClient.sendMessage(conversation.id.toString(), messageText)
+      let messageType = 'text'
+      let fileUrl = null
+
+      // Upload file if attached
+      if (attachedFile) {
+        setIsUploading(true)
+        
+        const isImage = attachedFile.type.startsWith('image/')
+        const isVideo = attachedFile.type.startsWith('video/')
+        
+        if (isImage) {
+          messageType = 'image'
+          const uploadResult = await apiClient.uploadImage(attachedFile)
+          fileUrl = uploadResult.url
+        } else if (isVideo) {
+          messageType = 'video'
+          const uploadResult = await apiClient.uploadVideo(attachedFile)
+          fileUrl = uploadResult.url
+        }
+        
+        setIsUploading(false)
+        removeAttachedFile()
+      }
+
+      // Send message with or without file
+      await apiClient.sendMessage(
+        conversation.id.toString(), 
+        messageText || '', 
+        undefined, 
+        messageType, 
+        fileUrl || undefined
+      )
+      
       // Message will appear automatically when it comes back via Socket.IO
       onConversationUpdate()
     } catch (error: any) {
@@ -501,6 +587,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         description: error.message,
         variant: "destructive",
       })
+      setIsUploading(false)
     } finally {
       setIsSending(false)
     }
@@ -632,8 +719,13 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                           : "dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 bg-blue-50 text-slate-800 border border-blue-200",
                       )}
                     >
-                      <div className="text-[15px] sm:text-base break-words pr-14 sm:pr-16 leading-relaxed">
-                        {formatWhatsAppText(message.message)}
+                      <div className="pr-14 sm:pr-16">
+                        <MultimediaMessage
+                          type={message.type || "text"}
+                          message={message.message}
+                          url={message.url || null}
+                          sender={message.sender}
+                        />
                       </div>
                       <p className={cn("text-[11px] sm:text-xs mt-0.5 absolute bottom-2 right-2 sm:right-3 whitespace-nowrap", message.sender === "bot" ? "text-blue-100" : "dark:text-slate-400 text-slate-600")}>
                         {formatMessageTime(message.created_at, userCountry)}
@@ -649,7 +741,83 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
 
       {/* Input */}
       <div className="p-3 sm:p-4 border-t dark:border-slate-700 border-blue-200 dark:bg-slate-800/50 bg-white/90 shadow-lg relative">
+        {/* File Preview */}
+        {attachedFilePreview && (
+          <div className="mb-3 p-3 rounded-lg dark:bg-slate-700/50 bg-blue-50 border dark:border-slate-600 border-blue-200">
+            <div className="flex items-start gap-3">
+              <div className="relative flex-shrink-0">
+                {attachedFile?.type.startsWith('image/') ? (
+                  <img 
+                    src={attachedFilePreview} 
+                    alt="Preview" 
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-20 h-20 flex items-center justify-center bg-slate-800 rounded-lg">
+                    <Video className="w-8 h-8 text-slate-400" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium dark:text-slate-200 text-slate-800 truncate">
+                  {attachedFile?.name}
+                </p>
+                <p className="text-xs dark:text-slate-400 text-slate-600">
+                  {attachedFile && (attachedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={removeAttachedFile}
+                className="flex-shrink-0 p-1 rounded-full hover:bg-red-500/20 text-red-500 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+        
         <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
+          <div className="flex gap-2">
+            {/* Image upload button */}
+            <label className="flex-shrink-0 cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, 'image')}
+                disabled={isSending || isUploading || !!attachedFile}
+              />
+              <div className={cn(
+                "h-11 w-11 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center transition-all",
+                attachedFile || isSending || isUploading
+                  ? "bg-slate-700/30 text-slate-500 cursor-not-allowed"
+                  : "bg-blue-600/20 text-blue-500 hover:bg-blue-600/30 active:scale-95"
+              )}>
+                <ImageIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+              </div>
+            </label>
+
+            {/* Video upload button */}
+            <label className="flex-shrink-0 cursor-pointer">
+              <input
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e, 'video')}
+                disabled={isSending || isUploading || !!attachedFile}
+              />
+              <div className={cn(
+                "h-11 w-11 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center transition-all",
+                attachedFile || isSending || isUploading
+                  ? "bg-slate-700/30 text-slate-500 cursor-not-allowed"
+                  : "bg-purple-600/20 text-purple-500 hover:bg-purple-600/30 active:scale-95"
+              )}>
+                <Video className="h-5 w-5 sm:h-4 sm:w-4" />
+              </div>
+            </label>
+          </div>
+
           <div className="flex-1 relative">
             {showTemplatesMenu && (
               <TemplatesMenu
@@ -683,7 +851,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                   }
                 }}
                 placeholder="Escribe un mensaje... (usa / para templates)"
-                disabled={isSending}
+                disabled={isSending || isUploading}
                 singleLine={true}
                 className="h-11 sm:h-10 text-base sm:text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-10"
               />
@@ -699,10 +867,14 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
           </div>
           <Button 
             type="submit" 
-            disabled={isSending || !inputMessage.trim()}
+            disabled={isSending || isUploading || (!inputMessage.trim() && !attachedFile)}
             className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white h-11 w-11 sm:h-10 sm:w-10 p-0 rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
-            <Send className="h-5 w-5 sm:h-4 sm:w-4" />
+            {isUploading ? (
+              <div className="w-5 h-5 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Send className="h-5 w-5 sm:h-4 sm:w-4" />
+            )}
           </Button>
         </form>
       </div>

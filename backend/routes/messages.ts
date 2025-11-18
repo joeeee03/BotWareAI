@@ -22,10 +22,10 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
     return res.status(401).json({ error: "User not authenticated" })
   }
 
-  const { conversationId, message } = req.body
+  const { conversationId, message, type = 'text', url = null } = req.body
 
-  if (!conversationId || !message) {
-    return res.status(400).json({ error: "Conversation ID and message required" })
+  if (!conversationId || (!message && !url)) {
+    return res.status(400).json({ error: "Conversation ID and message or url required" })
   }
 
   try {
@@ -76,16 +76,16 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
       replaced: messageWithVariables
     })
 
-    // Encrypt message before saving to database
-    const encryptedMessage = encrypt(messageWithVariables)
+    // Encrypt message before saving to database (only if message exists)
+    const encryptedMessage = message ? encrypt(messageWithVariables) : null
 
     // Insert message into database as sender='bot' (bot sends to customer) with circuit breaker
     const messageResult = await withDatabaseCircuitBreaker(() =>
       pool.query(
-        `INSERT INTO messages (conversation_id, bot_id, sender, message, created_at)
-         VALUES ($1, $2, 'bot', $3, NOW())
-         RETURNING id, conversation_id, bot_id, sender, message, created_at`,
-        [conversationId, conversation.bot_id, encryptedMessage],
+        `INSERT INTO messages (conversation_id, bot_id, sender, message, type, url, created_at)
+         VALUES ($1, $2, 'bot', $3, $4, $5, NOW())
+         RETURNING id, conversation_id, bot_id, sender, message, type, url, created_at`,
+        [conversationId, conversation.bot_id, encryptedMessage, type, url],
       )
     )
 

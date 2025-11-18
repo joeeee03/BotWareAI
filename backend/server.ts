@@ -149,6 +149,10 @@ console.log("[v0] Health check endpoint registered")
 
 // Main async initialization function
 async function initializeServer() {
+  // Serve static files from public/uploads
+  app.use("/uploads", express.static("public/uploads"))
+  console.log("[v0] Static files middleware configured for /uploads")
+
   // Import and register routes - wrapped in try-catch to prevent blocking
   try {
     const { default: authRoutes } = await import("./routes/auth.js")
@@ -159,6 +163,7 @@ async function initializeServer() {
     const { default: debugRoutes } = await import("./routes/debug.js")
     const { default: templatesRoutes } = await import("./routes/templates.js")
     const { default: scheduledMessagesRoutes } = await import("./routes/scheduled-messages.js")
+    const { default: uploadRoutes } = await import("./routes/upload.js")
     
     app.use("/api/auth", authRoutes)
     app.use("/api/conversations", conversationsRoutes)
@@ -168,6 +173,7 @@ async function initializeServer() {
     app.use("/api/debug", debugRoutes)
     app.use("/api/templates", templatesRoutes)
     app.use("/api/scheduled-messages", scheduledMessagesRoutes)
+    app.use("/api/upload", uploadRoutes)
     
     console.log("[v0] Routes registered successfully")
   } catch (err) {

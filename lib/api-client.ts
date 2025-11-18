@@ -100,11 +100,62 @@ export class ApiClient {
     return this.request(`/api/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`)
   }
 
-  async sendMessage(conversationId: string, message: string, tempId?: string) {
+  async sendMessage(conversationId: string, message: string, tempId?: string, type?: string, url?: string) {
     return this.request("/api/messages/send-message", {
       method: "POST",
-      body: JSON.stringify({ conversationId, message, tempId }),
+      body: JSON.stringify({ conversationId, message, tempId, type, url }),
     })
+  }
+
+  // [TAG: Multimedia]
+  async uploadImage(file: File) {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const token = this.getToken()
+    const headers: Record<string, string> = {}
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_URL}/api/upload/image`, {
+      method: "POST",
+      headers: headers as HeadersInit,
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Upload failed" }))
+      throw new Error(error.error || "Upload failed")
+    }
+
+    return response.json()
+  }
+
+  async uploadVideo(file: File) {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const token = this.getToken()
+    const headers: Record<string, string> = {}
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_URL}/api/upload/video`, {
+      method: "POST",
+      headers: headers as HeadersInit,
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Upload failed" }))
+      throw new Error(error.error || "Upload failed")
+    }
+
+    return response.json()
   }
 
   // [TAG: DB]
