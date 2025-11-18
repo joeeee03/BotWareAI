@@ -254,4 +254,40 @@ router.get("/debug-user", async (req, res) => {
   }
 })
 
+// [TAG: User Profile]
+// PUT /api/auth/update-profile
+// Update user profile (display name)
+router.put("/update-profile", authenticateToken, async (req: AuthRequest, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "User not authenticated" })
+  }
+
+  const { display_name } = req.body
+
+  if (!display_name || typeof display_name !== 'string') {
+    return res.status(400).json({ error: "display_name is required" })
+  }
+
+  if (display_name.length > 100) {
+    return res.status(400).json({ error: "display_name must be 100 characters or less" })
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE users SET display_name = $1 WHERE id = $2 RETURNING id, email, display_name`,
+      [display_name, req.user.user_id]
+    )
+
+    console.log(`[AUTH] User ${req.user.user_id} updated display name to: ${display_name}`)
+
+    res.json({
+      user: result.rows[0],
+      message: "Profile updated successfully"
+    })
+  } catch (error) {
+    console.error("[AUTH] Error updating profile:", error)
+    res.status(500).json({ error: "Internal server error" })
+  }
+})
+
 export default router

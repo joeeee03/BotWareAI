@@ -122,6 +122,84 @@ export class ApiClient {
       }),
     })
   }
+
+  // [TAG: Templates]
+  async getTemplates() {
+    return this.request("/api/templates")
+  }
+
+  async createTemplate(title: string, message: string, shortcut?: string, category?: string) {
+    return this.request("/api/templates", {
+      method: "POST",
+      body: JSON.stringify({ title, message, shortcut, category }),
+    })
+  }
+
+  async updateTemplate(id: number, title: string, message: string, shortcut?: string, category?: string) {
+    return this.request(`/api/templates/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ title, message, shortcut, category }),
+    })
+  }
+
+  async deleteTemplate(id: number) {
+    return this.request(`/api/templates/${id}`, {
+      method: "DELETE",
+    })
+  }
+
+  // [TAG: Scheduled Messages]
+  async getScheduledMessages(status?: string) {
+    const query = status ? `?status=${status}` : ''
+    return this.request(`/api/scheduled-messages${query}`)
+  }
+
+  async createScheduledMessage(
+    botId: number,
+    conversationIds: number[],
+    message: string,
+    scheduledFor: string
+  ) {
+    return this.request("/api/scheduled-messages", {
+      method: "POST",
+      body: JSON.stringify({
+        bot_id: botId,
+        conversation_ids: conversationIds,
+        message,
+        scheduled_for: scheduledFor,
+      }),
+    })
+  }
+
+  async updateScheduledMessage(
+    id: number,
+    conversationIds: number[],
+    message: string,
+    scheduledFor: string
+  ) {
+    return this.request(`/api/scheduled-messages/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        conversation_ids: conversationIds,
+        message,
+        scheduled_for: scheduledFor,
+      }),
+    })
+  }
+
+  async cancelScheduledMessage(id: number) {
+    return this.request(`/api/scheduled-messages/${id}`, {
+      method: "DELETE",
+    })
+  }
+
+  // [TAG: User Profile]
+  async updateDisplayName(displayName: string) {
+    return this.request("/api/auth/update-profile", {
+      method: "PUT",
+      body: JSON.stringify({ display_name: displayName }),
+    })
+  }
 }
 
 export const apiClient = new ApiClient()
