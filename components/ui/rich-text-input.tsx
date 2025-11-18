@@ -39,13 +39,13 @@ export function RichTextInput({
         return (
           <span
             key={index}
-            className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
+            className="text-blue-600 dark:text-blue-400 font-medium underline decoration-2 underline-offset-2"
           >
             {part}
           </span>
         )
       }
-      return <span key={index} className="whitespace-pre-wrap">{part}</span>
+      return <span key={index}>{part}</span>
     })
   }
 
