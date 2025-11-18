@@ -157,6 +157,8 @@ async function initializeServer() {
     const { default: webhookRoutes } = await import("./routes/webhook.js")
     const { default: botsRoutes } = await import("./routes/bots.js")
     const { default: debugRoutes } = await import("./routes/debug.js")
+    const { default: templatesRoutes } = await import("./routes/templates.js")
+    const { default: scheduledMessagesRoutes } = await import("./routes/scheduled-messages.js")
     
     app.use("/api/auth", authRoutes)
     app.use("/api/conversations", conversationsRoutes)
@@ -164,6 +166,8 @@ async function initializeServer() {
     app.use("/api/webhook", webhookRoutes)
     app.use("/api/bots", botsRoutes)
     app.use("/api/debug", debugRoutes)
+    app.use("/api/templates", templatesRoutes)
+    app.use("/api/scheduled-messages", scheduledMessagesRoutes)
     
     console.log("[v0] Routes registered successfully")
   } catch (err) {
@@ -204,6 +208,19 @@ async function initializeServer() {
         })
       } catch (err) {
         console.error('[Server] Message listener import error:', err)
+      }
+      
+      // Start scheduled messages worker
+      console.log('[Server] Starting scheduled messages scheduler...')
+      try {
+        import("./services/message-scheduler.js").then(({ startMessageScheduler }) => {
+          startMessageScheduler()
+          console.log('[Server] ✅ Scheduled messages scheduler started')
+        }).catch(err => {
+          console.error('[Server] Message scheduler error:', err)
+        })
+      } catch (err) {
+        console.error('[Server] Message scheduler import error:', err)
       }
       
       resolve(true)
