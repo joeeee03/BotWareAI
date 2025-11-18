@@ -90,24 +90,6 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         console.log("💬 [MESSAGE-THREAD] Message content being added:", newMessage.message)
         
         setMessages((prev) => {
-          // Si el mensaje es del bot, verificar si es un mensaje optimista o externo
-          if (newMessage.sender === "bot") {
-            // Buscar si hay algún mensaje pending (optimista) con contenido similar
-            const hasPendingMessage = prev.some(m => 
-              m.isPending && 
-              m.message.trim() === newMessage.message.trim()
-            )
-            
-            if (hasPendingMessage) {
-              console.log("⏭️ [MESSAGE-THREAD] Message is from bot (us), already have it locally via optimistic update")
-              // No agregar porque ya existe como pending, será reemplazado por message:sent:ack
-              return prev
-            } else {
-              console.log("📨 [MESSAGE-THREAD] Message is from bot but NOT from optimistic UI (scheduler/external), adding it")
-              // Continuar para agregarlo (viene del scheduler u otra fuente)
-            }
-          }
-          
           // Check if message already exists by ID
           const existsById = newMessage.id && newMessage.id > 0 && prev.some((m) => m.id === newMessage.id)
           
@@ -147,39 +129,10 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       onConversationUpdate()
     }
 
-    const handleMessageSentAck = ({ tempId, message }: { tempId?: string; message: Message }) => {
-      console.log("✅ [MESSAGE-THREAD] Message sent acknowledgment:", tempId, message)
-      setMessages((prev) => {
-        // Replace temporary message with real message from DB
-        const tempIndex = prev.findIndex(m => m.tempId === tempId)
-        
-        if (tempIndex === -1) {
-          console.log("⚠️ [MESSAGE-THREAD] Temp message not found")
-          // Verificar si el mensaje real ya existe
-          const realExists = prev.some(m => m.id === message.id)
-          if (realExists) {
-            console.log("⚠️ [MESSAGE-THREAD] Real message already exists, ignoring ack")
-            return prev
-          }
-          console.log("➕ [MESSAGE-THREAD] Adding real message from ack")
-          return [...prev, { ...message, isPending: false }]
-        }
-        
-        console.log("🔄 [MESSAGE-THREAD] Replacing temp message with real message")
-        return prev.map((m) => 
-          m.tempId === tempId 
-            ? { ...message, isPending: false }
-            : m
-        )
-      })
-    }
-
     socket.on("message:new", handleNewMessage)
-    socket.on("message:sent:ack", handleMessageSentAck)
 
     return () => {
       socket.off("message:new", handleNewMessage)
-      socket.off("message:sent:ack", handleMessageSentAck)
     }
   }, [socket, conversation?.id, onConversationUpdate])
 
@@ -507,27 +460,12 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     if (!inputMessage.trim() || isSending) return
 
     const messageText = inputMessage.trim()
-    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-    // Optimistic UI update
-    const tempMessage: Message = {
-      id: -Date.now(), // Use negative timestamp as temporary ID to avoid conflicts
-      conversation_id: conversation.id,
-      // When the client (bot) sends a message to the customer, mark it as 'bot'
-      sender: "bot",
-      message: messageText,
-      created_at: new Date().toISOString(),
-      tempId,
-      isPending: true,
-    }
-
-    setMessages((prev) => [...prev, tempMessage])
     setInputMessage("")
     setIsSending(true)
-    scrollToBottom()
 
     try {
-      await apiClient.sendMessage(conversation.id.toString(), messageText, tempId)
+      await apiClient.sendMessage(conversation.id.toString(), messageText)
+      // Message will appear automatically when it comes back via Socket.IO
       onConversationUpdate()
     } catch (error: any) {
       toast({
@@ -535,8 +473,6 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         description: error.message,
         variant: "destructive",
       })
-      // Remove temp message on error
-      setMessages((prev) => prev.filter((m) => m.tempId !== tempId))
     } finally {
       setIsSending(false)
     }
@@ -664,11 +600,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                         "max-w-[85%] sm:max-w-[75%] rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-sm relative transition-all duration-300",
                         // Professional styling: bot -> blue, user -> slate/white
                         message.sender === "bot" 
-                          ? message.isPending
-                            ? "bg-blue-700/70 text-white/90" // Más oscuro cuando está pendiente
-                            : "bg-blue-600 text-white"
+                          ? "bg-blue-600 text-white"
                           : "dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 bg-blue-50 text-slate-800 border border-blue-200",
-                        message.isPending && "opacity-80",
                       )}
                     >
                       <div className="text-[15px] sm:text-base break-words pr-14 sm:pr-16 leading-relaxed">

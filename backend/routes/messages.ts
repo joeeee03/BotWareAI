@@ -105,12 +105,8 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
       messageLength: decryptedMessageForEmit.message?.length,
     })
     
-    // ONLY emit acknowledgment to sender to update optimistic message
-    // DO NOT emit "message:new" here to avoid duplicates (frontend already has optimistic message)
-    io.to(`conversation_${conversationId}`).emit("message:sent:ack", {
-      tempId: req.body.tempId,
-      message: decryptedMessageForEmit,
-    })
+    // Emit message:new for all messages (no optimistic UI)
+    io.to(`conversation_${conversationId}`).emit("message:new", decryptedMessageForEmit)
     
     // Emit global conversation update to user room for conversation list reordering
     io.to(`user_${req.user.user_id}`).emit("conversation:updated", {
@@ -120,7 +116,7 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
       newMessage: decryptedMessageForEmit
     })
     
-    console.log("✅ [SEND-MESSAGE] Message saved and events emitted")
+    console.log("✅ [SEND-MESSAGE] Message saved and message:new emitted")
 
     // Send to Meta API using decrypted credentials
     console.log('[SEND-MESSAGE] Sending to Meta API...', {
