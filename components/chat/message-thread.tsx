@@ -676,7 +676,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                   }
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  // Si el menú de templates está abierto, no enviar mensaje con Enter
+                  if (e.key === 'Enter' && !e.shiftKey && !showTemplatesMenu) {
                     e.preventDefault()
                     handleSendMessage(e as any)
                   }
