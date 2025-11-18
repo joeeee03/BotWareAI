@@ -141,7 +141,6 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
           phoneNumberId: phoneNumberId,
           accessToken: accessToken,
           to: conversation.customer_phone,
-          message: '', // Not used for image
           imageUrl: url,
           caption: messageWithVariables || '',
         })
@@ -156,7 +155,6 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
           phoneNumberId: phoneNumberId,
           accessToken: accessToken,
           to: conversation.customer_phone,
-          message: '', // Not used for video
           videoUrl: url,
           caption: messageWithVariables || '',
         })
