@@ -22,7 +22,9 @@ interface VariableInserterProps {
 
 export function VariableInserter({ onInsert, className = "" }: VariableInserterProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [openUpwards, setOpenUpwards] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,13 +47,27 @@ export function VariableInserter({ onInsert, className = "" }: VariableInserterP
     setIsOpen(false)
   }
 
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      // Detectar si hay suficiente espacio abajo
+      const rect = buttonRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const dropdownHeight = 150 // Altura aproximada del dropdown
+      
+      // Si no hay suficiente espacio abajo, abrir hacia arriba
+      setOpenUpwards(spaceBelow < dropdownHeight)
+    }
+    setIsOpen(!isOpen)
+  }
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <Button
+        ref={buttonRef}
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="h-8 w-8 p-0"
         title="Insertar variable"
       >
@@ -59,7 +75,7 @@ export function VariableInserter({ onInsert, className = "" }: VariableInserterP
       </Button>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 right-0 bg-white dark:bg-slate-800 border-2 dark:border-blue-500 border-blue-400 rounded-lg shadow-2xl overflow-hidden min-w-[220px] z-50 backdrop-blur-xl">
+        <div className={`absolute ${openUpwards ? 'bottom-full mb-2' : 'top-full mt-2'} right-0 bg-white dark:bg-slate-800 border-2 dark:border-blue-500 border-blue-400 rounded-lg shadow-2xl overflow-hidden min-w-[220px] z-50 backdrop-blur-xl`}>
           <div className="px-3 py-2 border-b dark:border-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800">
             <p className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <Braces className="h-3 w-3 text-blue-500" />
