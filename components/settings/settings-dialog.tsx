@@ -12,11 +12,29 @@ import { ProfileTab } from "./profile-tab"
 interface SettingsDialogProps {
   userEmail: string
   displayName?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  activeTab?: string
+  onTabChange?: (tab: string) => void
+  onDisplayNameUpdate?: (name: string) => void
 }
 
-export function SettingsDialog({ userEmail, displayName }: SettingsDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState("templates")
+export function SettingsDialog({ 
+  userEmail, 
+  displayName,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  activeTab: controlledActiveTab,
+  onTabChange: controlledOnTabChange,
+  onDisplayNameUpdate
+}: SettingsDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const [internalActiveTab, setInternalActiveTab] = useState("templates")
+  
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen
+  const setOpen = controlledOnOpenChange || setInternalOpen
+  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab
+  const setActiveTab = controlledOnTabChange || setInternalActiveTab
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -61,7 +79,11 @@ export function SettingsDialog({ userEmail, displayName }: SettingsDialogProps) 
             </TabsContent>
 
             <TabsContent value="profile" className="h-full m-0">
-              <ProfileTab userEmail={userEmail} initialDisplayName={displayName} />
+              <ProfileTab 
+                userEmail={userEmail} 
+                initialDisplayName={displayName}
+                onDisplayNameUpdate={onDisplayNameUpdate}
+              />
             </TabsContent>
           </div>
         </Tabs>

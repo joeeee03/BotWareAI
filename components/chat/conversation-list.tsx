@@ -37,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { SettingsDialog } from "@/components/settings/settings-dialog"
 
 interface ConversationListProps {
   conversations: any[]
@@ -117,6 +118,8 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
   const { user, logout } = useAuth()
 
   const [open, setOpen] = React.useState(false)
+  const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false)
+  const [settingsActiveTab, setSettingsActiveTab] = React.useState("profile")
   // General settings state
   const [displayName, setDisplayName] = useState("")
   const [selectedCountry, setSelectedCountry] = useState(userCountry)
@@ -234,10 +237,23 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setOpen(true)} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
+                <DropdownMenuItem onClick={() => { setSettingsActiveTab("profile"); setSettingsDialogOpen(true); }} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
                   <User className="mr-2 h-4 w-4" />
-                  <span>Perfil</span>
+                  <span>Mi Perfil</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSettingsActiveTab("templates"); setSettingsDialogOpen(true); }} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  <span>Templates</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSettingsActiveTab("scheduled"); setSettingsDialogOpen(true); }} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Mensajes Programados</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="dark:bg-slate-700 bg-blue-200" />
                 <DropdownMenuItem onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
                   {resolvedTheme === "dark" ? (
                     <>
@@ -258,6 +274,17 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* Settings Dialog */}
+            <SettingsDialog 
+              userEmail={user?.email || ''} 
+              displayName={displayName}
+              open={settingsDialogOpen}
+              onOpenChange={setSettingsDialogOpen}
+              activeTab={settingsActiveTab}
+              onTabChange={setSettingsActiveTab}
+              onDisplayNameUpdate={(newName) => setDisplayName(newName)}
+            />
             
             {/* User Avatar (visual only) */}
             <div className="relative h-10 w-10">

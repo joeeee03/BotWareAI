@@ -12,9 +12,10 @@ import { useToast } from "@/hooks/use-toast"
 interface ProfileTabProps {
   userEmail: string
   initialDisplayName?: string
+  onDisplayNameUpdate?: (name: string) => void
 }
 
-export function ProfileTab({ userEmail, initialDisplayName }: ProfileTabProps) {
+export function ProfileTab({ userEmail, initialDisplayName, onDisplayNameUpdate }: ProfileTabProps) {
   const [displayName, setDisplayName] = useState(initialDisplayName || "")
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
@@ -32,6 +33,12 @@ export function ProfileTab({ userEmail, initialDisplayName }: ProfileTabProps) {
     try {
       setIsSaving(true)
       await apiClient.updateDisplayName(displayName.trim())
+      
+      // Notify parent component of the update
+      if (onDisplayNameUpdate) {
+        onDisplayNameUpdate(displayName.trim())
+      }
+      
       toast({ title: "✅ Perfil actualizado" })
     } catch (error: any) {
       toast({
