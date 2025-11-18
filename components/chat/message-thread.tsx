@@ -571,7 +571,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       }
 
       // Send message with or without file
-      await apiClient.sendMessage(
+      const response = await apiClient.sendMessage(
         conversation.id.toString(), 
         messageText || '', 
         undefined, 
@@ -579,7 +579,36 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         fileUrl || undefined
       )
       
-      // Message will appear automatically when it comes back via Socket.IO
+      // Add message optimistically (will be deduplicated when Socket.IO sends it)
+      if (response.message) {
+        const optimisticMessage: Message = {
+          id: response.message.id,
+          conversation_id: response.message.conversation_id,
+          sender: 'bot',
+          message: messageText || '',
+          type: messageType as "text" | "image" | "video" | "audio",
+          url: fileUrl || null,
+          created_at: response.message.created_at || new Date().toISOString()
+        }
+        
+        console.log("✨ [MESSAGE-THREAD] Adding optimistic message:", optimisticMessage)
+        
+        setMessages((prev) => {
+          // Check if it already exists
+          if (prev.some(m => m.id === optimisticMessage.id)) {
+            return prev
+          }
+          return [...prev, optimisticMessage]
+        })
+        
+        // Scroll to show the new message
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollToBottom(true)
+          })
+        })
+      }
+      
       onConversationUpdate()
     } catch (error: any) {
       toast({
