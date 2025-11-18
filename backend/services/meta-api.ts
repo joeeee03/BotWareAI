@@ -9,7 +9,23 @@ interface SendMessageParams {
   phoneNumberId: string
   accessToken: string
   to: string
-  message?: string
+  message: string
+}
+
+interface SendImageParams {
+  phoneNumberId: string
+  accessToken: string
+  to: string
+  imageUrl: string
+  caption?: string
+}
+
+interface SendVideoParams {
+  phoneNumberId: string
+  accessToken: string
+  to: string
+  videoUrl: string
+  caption?: string
 }
 
 interface SendMessageResponse {
@@ -94,7 +110,7 @@ export class MetaApiService {
   /**
    * Send an image message via Meta WhatsApp API
    */
-  async sendImageMessage({ phoneNumberId, accessToken, to, imageUrl, caption = '' }: SendMessageParams & { imageUrl: string; caption?: string }): Promise<SendMessageResponse> {
+  async sendImageMessage({ phoneNumberId, accessToken, to, imageUrl, caption = '' }: SendImageParams): Promise<SendMessageResponse> {
     try {
       const url = `${this.baseUrl}/${phoneNumberId}/messages`
       
@@ -161,7 +177,7 @@ export class MetaApiService {
   /**
    * Send a video message via Meta WhatsApp API
    */
-  async sendVideoMessage({ phoneNumberId, accessToken, to, videoUrl, caption = '' }: SendMessageParams & { videoUrl: string; caption?: string }): Promise<SendMessageResponse> {
+  async sendVideoMessage({ phoneNumberId, accessToken, to, videoUrl, caption = '' }: SendVideoParams): Promise<SendMessageResponse> {
     try {
       const url = `${this.baseUrl}/${phoneNumberId}/messages`
       
