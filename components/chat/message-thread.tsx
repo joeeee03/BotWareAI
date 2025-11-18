@@ -89,16 +89,25 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
         console.log("✅ [MESSAGE-THREAD] Adding message to current conversation")
         console.log("💬 [MESSAGE-THREAD] Message content being added:", newMessage.message)
         
-        // CRÍTICO: Si el mensaje es del bot (enviado por nosotros), NO agregarlo
-        // porque ya lo tenemos localmente desde el optimistic update
-        if (newMessage.sender === "bot") {
-          console.log("⏭️ [MESSAGE-THREAD] Message is from bot (us), already have it locally via optimistic update")
-          // Actualizar lista de conversaciones pero no agregar el mensaje
-          onConversationUpdate()
-          return
-        }
-        
         setMessages((prev) => {
+          // Si el mensaje es del bot, verificar si es un mensaje optimista o externo
+          if (newMessage.sender === "bot") {
+            // Buscar si hay algún mensaje pending (optimista) con contenido similar
+            const hasPendingMessage = prev.some(m => 
+              m.isPending && 
+              m.message.trim() === newMessage.message.trim()
+            )
+            
+            if (hasPendingMessage) {
+              console.log("⏭️ [MESSAGE-THREAD] Message is from bot (us), already have it locally via optimistic update")
+              // No agregar porque ya existe como pending, será reemplazado por message:sent:ack
+              return prev
+            } else {
+              console.log("📨 [MESSAGE-THREAD] Message is from bot but NOT from optimistic UI (scheduler/external), adding it")
+              // Continuar para agregarlo (viene del scheduler u otra fuente)
+            }
+          }
+          
           // Check if message already exists by ID
           const existsById = newMessage.id && newMessage.id > 0 && prev.some((m) => m.id === newMessage.id)
           
