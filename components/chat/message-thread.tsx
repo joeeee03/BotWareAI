@@ -47,6 +47,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const [currentOffset, setCurrentOffset] = useState(0)
   const [isScrollBlocked, setIsScrollBlocked] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const previousMessagesLengthRef = useRef(0)
   const newestMessageIdRef = useRef<number | null>(null)
   const { toast } = useToast()
@@ -84,28 +85,25 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       console.log("📨 [MESSAGE-THREAD] Message text:", newMessage.message)
       console.log("📨 [MESSAGE-THREAD] Current conversation ID:", conversation?.id)
       
-      // Only add message if it belongs to current conversation
       if (newMessage.conversation_id === conversation?.id) {
         console.log("✅ [MESSAGE-THREAD] Adding message to current conversation")
         console.log("💬 [MESSAGE-THREAD] Message content being added:", newMessage.message)
+        
+        // CRÍTICO: Si el mensaje es del bot (enviado por nosotros), NO agregarlo
+        // porque ya lo tenemos localmente desde el optimistic update
+        if (newMessage.sender === "bot") {
+          console.log("⏭️ [MESSAGE-THREAD] Message is from bot (us), already have it locally via optimistic update")
+          // Actualizar lista de conversaciones pero no agregar el mensaje
+          onConversationUpdate()
+          return
+        }
+        
         setMessages((prev) => {
-          // Check if message already exists by ID or if there's a pending message for it
+          // Check if message already exists by ID
           const existsById = newMessage.id && newMessage.id > 0 && prev.some((m) => m.id === newMessage.id)
-          const existsByTempId = newMessage.tempId && prev.some((m) => m.tempId === newMessage.tempId)
-          // NUEVO: También verificar si hay un mensaje pendiente con el mismo contenido
-          const hasPendingWithSameContent = prev.some((m) => 
-            m.isPending && 
-            m.message === newMessage.message && 
-            m.sender === newMessage.sender &&
-            // Solo si el mensaje es reciente (menos de 10 segundos)
-            Math.abs(new Date(m.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 10000
-          )
           
-          if (existsById || existsByTempId || hasPendingWithSameContent) {
-            console.log("⚠️ [MESSAGE-THREAD] Message already exists or is pending, skipping", { 
-              existsById, 
-              existsByTempId, 
-              hasPendingWithSameContent,
+          if (existsById) {
+            console.log("⚠️ [MESSAGE-THREAD] Message already exists, skipping", { 
               messageId: newMessage.id 
             })
             return prev
@@ -179,8 +177,39 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   useEffect(() => {
     if (conversation?.id) {
       loadMessages()
+      // Auto-focus en el input cuando se abre el chat
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
     }
   }, [conversation?.id])
+
+  // Auto-focus del input al presionar teclas
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Si el input ya tiene focus, no hacer nada
+      if (document.activeElement === inputRef.current) return
+      
+      // Si la tecla es ESC, no hacer nada (para cerrar el chat)
+      if (e.key === 'Escape') return
+      
+      // Si presionó una tecla de escritura (letra, número, espacio, etc.)
+      // y no es una combinación con Ctrl/Alt/Meta
+      if (
+        !e.ctrlKey && 
+        !e.altKey && 
+        !e.metaKey && 
+        e.key.length === 1 && 
+        !e.repeat
+      ) {
+        console.log('🎹 [INPUT] Auto-focusing input on keypress:', e.key)
+        inputRef.current?.focus()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Scroll to bottom ONLY when new messages arrive (not when loading old ones)
   // We detect new messages by checking if the NEWEST (last) message ID changed
@@ -652,6 +681,7 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       <div className="p-3 sm:p-4 border-t dark:border-slate-700 border-blue-200 dark:bg-slate-800/50 bg-white/90 shadow-lg">
         <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
           <Input
+            ref={inputRef}
             value={inputMessage}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
             placeholder="Escribe un mensaje..."
