@@ -71,13 +71,13 @@ export function RichTextInput({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            value && "text-transparent caret-black dark:caret-white selection:bg-blue-200 dark:selection:bg-blue-800",
+            value && "[color:transparent] caret-black dark:caret-white [-webkit-text-fill-color:transparent] selection:bg-blue-200 dark:selection:bg-blue-800",
             className
           )}
         />
         {/* Overlay con texto estilizado - mismo padding y altura que el Input */}
         {value && (
-          <div className="absolute left-0 top-0 right-0 bottom-0 px-3 flex items-center pointer-events-none overflow-hidden whitespace-nowrap text-base sm:text-sm">
+          <div className="absolute left-0 top-0 right-0 bottom-0 px-3 flex items-center pointer-events-none overflow-hidden whitespace-nowrap text-base sm:text-sm leading-[2.5rem] sm:leading-[2.25rem]">
             {renderStyledText()}
           </div>
         )}
@@ -97,13 +97,13 @@ export function RichTextInput({
         disabled={disabled}
         rows={rows}
         className={cn(
-          value && "text-transparent caret-black dark:caret-white selection:bg-blue-200 dark:selection:bg-blue-800",
+          value && "[color:transparent] caret-black dark:caret-white [-webkit-text-fill-color:transparent] selection:bg-blue-200 dark:selection:bg-blue-800",
           className
         )}
       />
       {/* Overlay con texto estilizado - mismo padding que el Textarea */}
       {value && (
-        <div className="absolute left-0 top-0 right-0 bottom-0 px-3 py-2 pointer-events-none overflow-hidden whitespace-pre-wrap break-words text-sm">
+        <div className="absolute left-0 top-0 right-0 bottom-0 px-3 py-2 pointer-events-none overflow-hidden whitespace-pre-wrap break-words text-sm leading-5">
           {renderStyledText()}
         </div>
       )}
