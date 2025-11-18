@@ -44,10 +44,14 @@ export function RichTextInput({
     const text = editorRef.current.innerText
     onChange(text)
     
+    // Detectar dark mode
+    const isDark = document.documentElement.classList.contains('dark')
+    const color = isDark ? '#60a5fa' : '#2563eb' // blue-400 para dark, blue-600 para light
+    
     // Aplicar estilos a variables
     const styledHTML = text.replace(
       /\{(nombre|telefono)\}/gi,
-      '<span style="color: #2563eb; text-decoration: underline; font-weight: 500;">$&</span>'
+      `<span style="color: ${color}; text-decoration: underline; font-weight: 500;">$&</span>`
     )
     
     // Solo actualizar si el HTML cambió
@@ -107,10 +111,14 @@ export function RichTextInput({
     if (editorRef.current && editorRef.current.innerText !== value) {
       editorRef.current.innerText = value
       
+      // Detectar dark mode
+      const isDark = document.documentElement.classList.contains('dark')
+      const color = isDark ? '#60a5fa' : '#2563eb' // blue-400 para dark, blue-600 para light
+      
       // Aplicar estilos inmediatamente al cargar
       const styledHTML = value.replace(
         /\{(nombre|telefono)\}/gi,
-        '<span style="color: #2563eb; text-decoration: underline; font-weight: 500;">$&</span>'
+        `<span style="color: ${color}; text-decoration: underline; font-weight: 500;">$&</span>`
       )
       editorRef.current.innerHTML = styledHTML
     }
