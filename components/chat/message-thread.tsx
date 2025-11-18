@@ -19,6 +19,7 @@ import { Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatWhatsAppText } from "@/lib/whatsapp-formatter"
 import { formatMessageTime, getUserCountry, formatDateSeparator, isSameDayInTimezone } from "@/lib/timezone-utils"
+import { TemplatesMenu } from "./templates-menu"
 
 interface MessageThreadProps {
   conversation: any
@@ -46,6 +47,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [currentOffset, setCurrentOffset] = useState(0)
   const [isScrollBlocked, setIsScrollBlocked] = useState(false)
+  const [showTemplatesMenu, setShowTemplatesMenu] = useState(false)
+  const [templatesSearch, setTemplatesSearch] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const previousMessagesLengthRef = useRef(0)
@@ -454,6 +457,27 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     console.log("📜 [SCROLL] After scroll:", scrollContainer.scrollTop)
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setInputMessage(value)
+    
+    // Check if user typed "/" to show templates menu
+    if (value.startsWith("/")) {
+      setShowTemplatesMenu(true)
+      setTemplatesSearch(value.slice(1)) // Remove the "/"
+    } else {
+      setShowTemplatesMenu(false)
+      setTemplatesSearch("")
+    }
+  }
+
+  const handleTemplateSelect = (templateMessage: string) => {
+    setInputMessage(templateMessage)
+    setShowTemplatesMenu(false)
+    setTemplatesSearch("")
+    inputRef.current?.focus()
+  }
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -461,6 +485,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
 
     const messageText = inputMessage.trim()
     setInputMessage("")
+    setShowTemplatesMenu(false)
+    setTemplatesSearch("")
     setIsSending(true)
 
     try {
@@ -620,16 +646,25 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-3 sm:p-4 border-t dark:border-slate-700 border-blue-200 dark:bg-slate-800/50 bg-white/90 shadow-lg">
+      <div className="p-3 sm:p-4 border-t dark:border-slate-700 border-blue-200 dark:bg-slate-800/50 bg-white/90 shadow-lg relative">
         <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
-          <Input
-            ref={inputRef}
-            value={inputMessage}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputMessage(e.target.value)}
-            placeholder="Escribe un mensaje..."
-            disabled={isSending}
-            className="flex-1 h-11 sm:h-10 text-base sm:text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-          />
+          <div className="flex-1 relative">
+            {showTemplatesMenu && (
+              <TemplatesMenu
+                onSelect={handleTemplateSelect}
+                onClose={() => setShowTemplatesMenu(false)}
+                searchQuery={templatesSearch}
+              />
+            )}
+            <Input
+              ref={inputRef}
+              value={inputMessage}
+              onChange={handleInputChange}
+              placeholder="Escribe un mensaje... (usa / para templates)"
+              disabled={isSending}
+              className="h-11 sm:h-10 text-base sm:text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 dark:placeholder:text-slate-400 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+            />
+          </div>
           <Button 
             type="submit" 
             disabled={isSending || !inputMessage.trim()}

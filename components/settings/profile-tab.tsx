@@ -1,13 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { User, Save, Lock } from "lucide-react"
+import { User, Save, Lock, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
+import { getUserCountry, setUserCountry, getCountryList } from "@/lib/timezone-utils"
 
 interface ProfileTabProps {
   userEmail: string
@@ -17,6 +19,7 @@ interface ProfileTabProps {
 
 export function ProfileTab({ userEmail, initialDisplayName, onDisplayNameUpdate }: ProfileTabProps) {
   const [displayName, setDisplayName] = useState(initialDisplayName || "")
+  const [selectedCountry, setSelectedCountry] = useState(getUserCountry())
   const [isSaving, setIsSaving] = useState(false)
   
   // Password change state
@@ -26,6 +29,7 @@ export function ProfileTab({ userEmail, initialDisplayName, onDisplayNameUpdate 
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   
   const { toast } = useToast()
+  const countryList = getCountryList()
 
   const handleSave = async () => {
     if (!displayName.trim()) {
@@ -41,12 +45,20 @@ export function ProfileTab({ userEmail, initialDisplayName, onDisplayNameUpdate 
       setIsSaving(true)
       await apiClient.updateDisplayName(displayName.trim())
       
+      // Save country selection
+      setUserCountry(selectedCountry)
+      
       // Notify parent component of the update
       if (onDisplayNameUpdate) {
         onDisplayNameUpdate(displayName.trim())
       }
       
-      toast({ title: "✅ Perfil actualizado" })
+      toast({ title: "✅ Perfil actualizado", description: "Recarga la página para aplicar el cambio de zona horaria" })
+      
+      // Refresh page to apply timezone changes
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
     } catch (error: any) {
       toast({
         title: "Error al actualizar",
@@ -137,6 +149,28 @@ export function ProfileTab({ userEmail, initialDisplayName, onDisplayNameUpdate 
             />
             <p className="text-xs text-slate-500">
               Este nombre se mostrará en la interfaz
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="country" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              País / Zona Horaria *
+            </Label>
+            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+              <SelectTrigger id="country">
+                <SelectValue placeholder="Selecciona tu país" />
+              </SelectTrigger>
+              <SelectContent>
+                {countryList.map((country) => (
+                  <SelectItem key={country.code} value={country.code}>
+                    {country.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500">
+              Para horarios y fechas correctas en mensajes programados
             </p>
           </div>
 
