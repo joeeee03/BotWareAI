@@ -9,7 +9,7 @@ interface SendMessageParams {
   phoneNumberId: string
   accessToken: string
   to: string
-  message: string
+  message?: string
 }
 
 interface SendMessageResponse {
