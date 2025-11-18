@@ -242,6 +242,28 @@ export class MetaApiService {
   }
 
   /**
+   * Get media URL from Meta WhatsApp API
+   */
+  async getMediaUrl(mediaId: string, accessToken: string): Promise<string | null> {
+    try {
+      const url = `${this.baseUrl}/${mediaId}`
+      
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      console.log('[META-API] Media URL retrieved:', response.data.url)
+      return response.data.url || null
+    } catch (error) {
+      const axiosError = error as AxiosError
+      console.error('[META-API] Failed to get media URL:', axiosError.response?.data || axiosError.message)
+      return null
+    }
+  }
+
+  /**
    * Parse incoming webhook data from Meta (supports text, image, video, audio)
    */
   parseWebhook(body: any): {

@@ -94,11 +94,15 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
     const handleNewMessage = (newMessage: Message) => {
       console.log("📨 [MESSAGE-THREAD] New message received:", newMessage)
       console.log("📨 [MESSAGE-THREAD] Message text:", newMessage.message)
+      console.log("📨 [MESSAGE-THREAD] Message type:", newMessage.type)
+      console.log("📨 [MESSAGE-THREAD] Message url:", newMessage.url)
       console.log("📨 [MESSAGE-THREAD] Current conversation ID:", conversation?.id)
       
       if (newMessage.conversation_id === conversation?.id) {
         console.log("✅ [MESSAGE-THREAD] Adding message to current conversation")
         console.log("💬 [MESSAGE-THREAD] Message content being added:", newMessage.message)
+        console.log("🖼️ [MESSAGE-THREAD] Message type being added:", newMessage.type)
+        console.log("🔗 [MESSAGE-THREAD] Message URL being added:", newMessage.url)
         
         setMessages((prev) => {
           // Check if message already exists by ID

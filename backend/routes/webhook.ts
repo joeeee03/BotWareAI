@@ -99,7 +99,7 @@ async function processIncomingMessage(params: {
   try {
     // Find bot by key_bot (using encrypted column) with circuit breaker
     const botResult = await withDatabaseCircuitBreaker(() =>
-      pool.query("SELECT id, user_id FROM bots WHERE key_bot_encrypted = $1", [keyBot])
+      pool.query("SELECT id, user_id, access_token_encrypted FROM bots WHERE key_bot_encrypted = $1", [keyBot])
     )
 
     if (botResult.rows.length === 0) {
@@ -107,6 +107,26 @@ async function processIncomingMessage(params: {
     }
 
     const bot = botResult.rows[0]
+    
+    // Get real media URL if this is a multimedia message
+    let mediaUrl = url
+    if ((type === 'image' || type === 'video' || type === 'audio') && url) {
+      console.log(`[WEBHOOK] ${taskId} Getting media URL for ${type} with ID:`, url)
+      
+      // Decrypt access token to call Meta API
+      const { decrypt } = await import('../utils/message-decryption.js')
+      const accessToken = decrypt(bot.access_token_encrypted)
+      
+      if (accessToken) {
+        const realMediaUrl = await metaApiService.getMediaUrl(url, accessToken)
+        if (realMediaUrl) {
+          mediaUrl = realMediaUrl
+          console.log(`[WEBHOOK] ${taskId} Media URL retrieved successfully`)
+        } else {
+          console.warn(`[WEBHOOK] ${taskId} Failed to get media URL, using media ID`)
+        }
+      }
+    }
 
     // Find or create conversation with circuit breaker
     const conversationResult = await withDatabaseCircuitBreaker(() =>
@@ -166,7 +186,7 @@ async function processIncomingMessage(params: {
         `INSERT INTO messages (conversation_id, bot_id, sender, message, type, url, created_at)
          VALUES ($1, $2, 'user', $3, $4, $5, NOW())
          RETURNING id, conversation_id, bot_id, sender, message, type, url, created_at`,
-        [conversationId, bot.id, encryptedMessage, type || 'text', url || null],
+        [conversationId, bot.id, encryptedMessage, type || 'text', mediaUrl || null],
       )
     )
 
