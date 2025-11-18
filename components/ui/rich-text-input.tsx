@@ -39,13 +39,13 @@ export function RichTextInput({
         return (
           <span
             key={index}
-            className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium text-sm mx-0.5"
+            className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
           >
             {part}
           </span>
         )
       }
-      return <span key={index}>{part}</span>
+      return <span key={index} className="whitespace-pre-wrap">{part}</span>
     })
   }
 
@@ -62,11 +62,7 @@ export function RichTextInput({
   if (singleLine) {
     return (
       <div className="relative">
-        {/* Overlay con texto estilizado */}
-        <div className="absolute inset-0 px-3 py-2 pointer-events-none overflow-hidden whitespace-nowrap flex items-center text-sm">
-          {renderStyledText()}
-        </div>
-        {/* Input real (invisible cuando hay contenido) */}
+        {/* Input real */}
         <Input
           ref={inputRef as React.RefObject<HTMLInputElement>}
           value={value}
@@ -75,21 +71,23 @@ export function RichTextInput({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            value && "text-transparent caret-black dark:caret-white",
+            value && "text-transparent caret-black dark:caret-white selection:bg-blue-200 dark:selection:bg-blue-800",
             className
           )}
         />
+        {/* Overlay con texto estilizado - mismo padding y altura que el Input */}
+        {value && (
+          <div className="absolute left-0 top-0 right-0 bottom-0 px-3 flex items-center pointer-events-none overflow-hidden whitespace-nowrap text-base sm:text-sm">
+            {renderStyledText()}
+          </div>
+        )}
       </div>
     )
   }
 
   return (
     <div className="relative">
-      {/* Overlay con texto estilizado */}
-      <div className="absolute inset-0 px-3 py-2 pointer-events-none overflow-auto whitespace-pre-wrap break-words text-sm">
-        {renderStyledText()}
-      </div>
-      {/* Textarea real (invisible cuando hay contenido) */}
+      {/* Textarea real */}
       <Textarea
         ref={inputRef as React.RefObject<HTMLTextAreaElement>}
         value={value}
@@ -99,10 +97,16 @@ export function RichTextInput({
         disabled={disabled}
         rows={rows}
         className={cn(
-          value && "text-transparent caret-black dark:caret-white",
+          value && "text-transparent caret-black dark:caret-white selection:bg-blue-200 dark:selection:bg-blue-800",
           className
         )}
       />
+      {/* Overlay con texto estilizado - mismo padding que el Textarea */}
+      {value && (
+        <div className="absolute left-0 top-0 right-0 bottom-0 px-3 py-2 pointer-events-none overflow-hidden whitespace-pre-wrap break-words text-sm">
+          {renderStyledText()}
+        </div>
+      )}
     </div>
   )
 }
