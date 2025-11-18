@@ -12,7 +12,8 @@ console.log('[Server] Iniciando proxy en puerto', PUBLIC_PORT);
 // PROXY SIMPLE
 const proxy = http.createServer((req, res) => {
   const url = req.url || '/';
-  const isBackend = url.startsWith('/api/') || url.startsWith('/socket.io') || url === '/health';
+  // Redirigir /uploads al backend (archivos multimedia subidos)
+  const isBackend = url.startsWith('/api/') || url.startsWith('/socket.io') || url.startsWith('/uploads/') || url === '/health';
   const targetPort = isBackend ? BACKEND_PORT : FRONTEND_PORT;
   
   const options = {

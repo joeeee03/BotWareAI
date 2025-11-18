@@ -70,6 +70,9 @@ COPY --from=builder /app/backend/package*.json ./backend/
 # Install backend production dependencies
 RUN cd backend && npm ci --only=production
 
+# Create uploads directory for multimedia files
+RUN mkdir -p /app/public/uploads && chmod 777 /app/public/uploads
+
 # ===== COPY FRONTEND =====
 # Copy standalone Next.js build
 COPY --from=builder /app/.next/standalone ./

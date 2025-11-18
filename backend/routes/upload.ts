@@ -60,16 +60,17 @@ router.post("/image", authenticateToken, requirePasswordChange, upload.single("f
       return res.status(400).json({ error: "No se proporcionó ningún archivo" })
     }
 
-    // Generate public URL
-    const protocol = req.protocol
-    const host = req.get("host")
-    const url = `${protocol}://${host}/uploads/${req.file.filename}`
+    // Generate public URL - use PUBLIC_URL env var if available (for production)
+    // Otherwise fall back to request protocol and host
+    const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`
+    const url = `${baseUrl}/uploads/${req.file.filename}`
 
     console.log("[UPLOAD] Image uploaded successfully:", {
       filename: req.file.filename,
       size: req.file.size,
       mimetype: req.file.mimetype,
       url,
+      baseUrl,
     })
 
     res.json({
@@ -93,16 +94,17 @@ router.post("/video", authenticateToken, requirePasswordChange, upload.single("f
       return res.status(400).json({ error: "No se proporcionó ningún archivo" })
     }
 
-    // Generate public URL
-    const protocol = req.protocol
-    const host = req.get("host")
-    const url = `${protocol}://${host}/uploads/${req.file.filename}`
+    // Generate public URL - use PUBLIC_URL env var if available (for production)
+    // Otherwise fall back to request protocol and host
+    const baseUrl = process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`
+    const url = `${baseUrl}/uploads/${req.file.filename}`
 
     console.log("[UPLOAD] Video uploaded successfully:", {
       filename: req.file.filename,
       size: req.file.size,
       mimetype: req.file.mimetype,
       url,
+      baseUrl,
     })
 
     res.json({

@@ -92,6 +92,140 @@ export class MetaApiService {
   }
 
   /**
+   * Send an image message via Meta WhatsApp API
+   */
+  async sendImageMessage({ phoneNumberId, accessToken, to, imageUrl, caption = '' }: SendMessageParams & { imageUrl: string; caption?: string }): Promise<SendMessageResponse> {
+    try {
+      const url = `${this.baseUrl}/${phoneNumberId}/messages`
+      
+      // Clean phone number (remove +, spaces, etc.)
+      const cleanedPhoneNumber = to.replace(/[^0-9]/g, "")
+      
+      console.log('[META-API] Sending image:', {
+        to: cleanedPhoneNumber,
+        imageUrl,
+        caption,
+        phoneNumberId: phoneNumberId.substring(0, 10) + '...'
+      })
+
+      const response = await axios.post(
+        url,
+        {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanedPhoneNumber,
+          type: "image",
+          image: {
+            link: imageUrl,
+            caption: caption || undefined,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        },
+      )
+
+      console.log("[META-API] Image sent successfully:", response.data)
+
+      return {
+        success: true,
+        messageId: response.data.messages?.[0]?.id,
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>
+        console.error("[META-API] Error sending image:", {
+          status: axiosError.response?.status,
+          data: axiosError.response?.data,
+          message: axiosError.message,
+        })
+
+        return {
+          success: false,
+          error: axiosError.response?.data?.error?.message || axiosError.message,
+        }
+      }
+
+      console.error("[META-API] Unexpected error:", error)
+      return {
+        success: false,
+        error: "Unexpected error occurred",
+      }
+    }
+  }
+
+  /**
+   * Send a video message via Meta WhatsApp API
+   */
+  async sendVideoMessage({ phoneNumberId, accessToken, to, videoUrl, caption = '' }: SendMessageParams & { videoUrl: string; caption?: string }): Promise<SendMessageResponse> {
+    try {
+      const url = `${this.baseUrl}/${phoneNumberId}/messages`
+      
+      // Clean phone number (remove +, spaces, etc.)
+      const cleanedPhoneNumber = to.replace(/[^0-9]/g, "")
+      
+      console.log('[META-API] Sending video:', {
+        to: cleanedPhoneNumber,
+        videoUrl,
+        caption,
+        phoneNumberId: phoneNumberId.substring(0, 10) + '...'
+      })
+
+      const response = await axios.post(
+        url,
+        {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanedPhoneNumber,
+          type: "video",
+          video: {
+            link: videoUrl,
+            caption: caption || undefined,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        },
+      )
+
+      console.log("[META-API] Video sent successfully:", response.data)
+
+      return {
+        success: true,
+        messageId: response.data.messages?.[0]?.id,
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>
+        console.error("[META-API] Error sending video:", {
+          status: axiosError.response?.status,
+          data: axiosError.response?.data,
+          message: axiosError.message,
+        })
+
+        return {
+          success: false,
+          error: axiosError.response?.data?.error?.message || axiosError.message,
+        }
+      }
+
+      console.error("[META-API] Unexpected error:", error)
+      return {
+        success: false,
+        error: "Unexpected error occurred",
+      }
+    }
+  }
+
+  /**
    * Parse incoming webhook data from Meta
    */
   parseWebhook(body: any): {

@@ -127,22 +127,57 @@ router.post("/send-message", authenticateToken, requirePasswordChange, async (re
     console.log('[SEND-MESSAGE] Sending to Meta API...', {
       phoneNumberId: phoneNumberId.substring(0, 10) + '...',
       to: conversation.customer_phone,
-      messageLength: message.length
+      type: type,
+      hasUrl: !!url,
+      messageLength: message?.length || 0
     })
 
     // Send to Meta API with circuit breaker protection (with variables replaced)
-    const metaResponse = await withMetaApiCircuitBreaker(() =>
-      metaApiService.sendTextMessage({
-        phoneNumberId: phoneNumberId,
-        accessToken: accessToken,
-        to: conversation.customer_phone,
-        message: messageWithVariables,
+    let metaResponse
+    if (type === 'image' && url) {
+      // Send image message
+      metaResponse = await withMetaApiCircuitBreaker(() =>
+        metaApiService.sendImageMessage({
+          phoneNumberId: phoneNumberId,
+          accessToken: accessToken,
+          to: conversation.customer_phone,
+          message: '', // Not used for image
+          imageUrl: url,
+          caption: messageWithVariables || '',
+        })
+      ).catch((error) => {
+        console.error("[SEND-MESSAGE] Meta API circuit breaker error:", error.message)
+        return { success: false, error: error.message, messageId: undefined }
       })
-    ).catch((error) => {
-      // If circuit is open, return a safe fallback
-      console.error("[SEND-MESSAGE] Meta API circuit breaker error:", error.message)
-      return { success: false, error: error.message, messageId: undefined }
-    })
+    } else if (type === 'video' && url) {
+      // Send video message
+      metaResponse = await withMetaApiCircuitBreaker(() =>
+        metaApiService.sendVideoMessage({
+          phoneNumberId: phoneNumberId,
+          accessToken: accessToken,
+          to: conversation.customer_phone,
+          message: '', // Not used for video
+          videoUrl: url,
+          caption: messageWithVariables || '',
+        })
+      ).catch((error) => {
+        console.error("[SEND-MESSAGE] Meta API circuit breaker error:", error.message)
+        return { success: false, error: error.message, messageId: undefined }
+      })
+    } else {
+      // Send text message (default)
+      metaResponse = await withMetaApiCircuitBreaker(() =>
+        metaApiService.sendTextMessage({
+          phoneNumberId: phoneNumberId,
+          accessToken: accessToken,
+          to: conversation.customer_phone,
+          message: messageWithVariables,
+        })
+      ).catch((error) => {
+        console.error("[SEND-MESSAGE] Meta API circuit breaker error:", error.message)
+        return { success: false, error: error.message, messageId: undefined }
+      })
+    }
 
     if (!metaResponse.success) {
       console.error("[SEND-MESSAGE] Meta API error:", metaResponse.error)
