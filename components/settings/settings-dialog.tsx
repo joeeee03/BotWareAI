@@ -38,16 +38,6 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 dark:hover:bg-slate-700 hover:bg-slate-100"
-          title="Configuración"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
-      </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Configuración</DialogTitle>
