@@ -90,9 +90,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("force_current_password", password)
       }
-      router.push("/change-password")
+      router.replace("/change-password") // replace instead of push to avoid login page in history
     } else {
-      router.push("/chats")
+      router.replace("/chats") // replace instead of push to avoid login page in history
     }
   }
 
@@ -115,13 +115,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // If no token and trying to access protected route OR on root page
     if (!token && (protectedRoutes.some(route => pathname.startsWith(route)) || pathname === "/")) {
-      router.push("/login")
+      router.replace("/login") // replace instead of push to avoid history stack issues
       return
     }
 
     // If no token and not on login page, redirect to login
     if (!token && pathname !== "/login") {
-      router.push("/login")
+      router.replace("/login") // replace instead of push to avoid history stack issues
       return
     }
 
@@ -129,19 +129,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (isAuthenticated && user) {
       // If user needs to change password and not on change-password page
       if (user.requirePasswordChange && pathname !== "/change-password") {
-        router.push("/change-password")
+        router.replace("/change-password") // replace instead of push to avoid history stack issues
         return
       }
 
       // If user doesn't need to change password but is on change-password page
       if (!user.requirePasswordChange && pathname === "/change-password") {
-        router.push("/chats")
+        router.replace("/chats") // replace instead of push to avoid history stack issues
         return
       }
 
       // If authenticated and on public routes, redirect to chats
       if (publicRoutes.includes(pathname)) {
-        router.push("/chats")
+        router.replace("/chats") // replace instead of push to avoid history stack issues
         return
       }
     }
