@@ -36,18 +36,34 @@ export function useNotifications() {
   // Inicializar soporte y permisos
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsSupported('Notification' in window && 'serviceWorker' in navigator)
-      setPermission(Notification.permission)
-      
-      // Cargar preferencias del localStorage
-      const savedSoundEnabled = localStorage.getItem('notifications-sound-enabled')
-      const savedNotificationsEnabled = localStorage.getItem('notifications-enabled')
-      
-      if (savedSoundEnabled !== null) {
-        setSoundEnabled(JSON.parse(savedSoundEnabled))
-      }
-      if (savedNotificationsEnabled !== null) {
-        setNotificationsEnabled(JSON.parse(savedNotificationsEnabled))
+      try {
+        // Verificar soporte de notificaciones de manera segura
+        const notificationsSupported = 'Notification' in window
+        const serviceWorkerSupported = 'serviceWorker' in navigator
+        setIsSupported(notificationsSupported && serviceWorkerSupported)
+        
+        // Solo acceder a Notification.permission si está disponible
+        if (notificationsSupported) {
+          setPermission(Notification.permission)
+        }
+        
+        // Cargar preferencias del localStorage de manera segura
+        try {
+          const savedSoundEnabled = localStorage.getItem('notifications-sound-enabled')
+          const savedNotificationsEnabled = localStorage.getItem('notifications-enabled')
+          
+          if (savedSoundEnabled !== null) {
+            setSoundEnabled(JSON.parse(savedSoundEnabled))
+          }
+          if (savedNotificationsEnabled !== null) {
+            setNotificationsEnabled(JSON.parse(savedNotificationsEnabled))
+          }
+        } catch (storageError) {
+          console.warn('⚠️ [NOTIFICATIONS] Error accediendo a localStorage:', storageError)
+        }
+      } catch (error) {
+        console.warn('⚠️ [NOTIFICATIONS] Error inicializando notificaciones:', error)
+        setIsSupported(false)
       }
     }
   }, [])
@@ -67,9 +83,22 @@ export function useNotifications() {
     try {
       console.log('🔊 [NOTIFICATIONS] Inicializando AudioContext...')
       
+      // Verificar si AudioContext está disponible
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      
+      if (!AudioContextClass) {
+        console.warn('⚠️ [NOTIFICATIONS] AudioContext no disponible en este navegador')
+        toast({
+          title: "Audio no disponible",
+          description: "Tu navegador no soporta audio web. Las notificaciones funcionarán sin sonido.",
+          variant: "destructive"
+        })
+        return false
+      }
+      
       // Crear AudioContext si no existe
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+        audioContextRef.current = new AudioContextClass()
       }
 
       const audioContext = audioContextRef.current
@@ -89,12 +118,24 @@ export function useNotifications() {
 
       setAudioInitialized(true)
       console.log('✅ [NOTIFICATIONS] AudioContext inicializado correctamente')
+      
+      // Mostrar toast de éxito
+      toast({
+        title: "Audio activado",
+        description: "Los sonidos de notificación están listos",
+      })
+      
       return true
     } catch (error) {
       console.warn('❌ [NOTIFICATIONS] Error inicializando sonidos:', error)
+      toast({
+        title: "Error al inicializar audio",
+        description: "Tu navegador no soporta audio web. Las notificaciones funcionarán sin sonido.",
+        variant: "destructive"
+      })
       return false
     }
-  }, [audioInitialized])
+  }, [audioInitialized, toast])
 
   // Función para generar y reproducir sonido usando Web Audio API
   const playSound = useCallback(async (type: keyof NotificationSound = 'message') => {
@@ -176,6 +217,17 @@ export function useNotifications() {
     }
 
     try {
+      // Verificar que Notification esté disponible
+      if (typeof Notification === 'undefined') {
+        console.warn('⚠️ [NOTIFICATIONS] Notification API no disponible')
+        toast({
+          title: "No disponible",
+          description: "Las notificaciones no están disponibles en este navegador",
+          variant: "destructive"
+        })
+        return false
+      }
+
       const result = await Notification.requestPermission()
       setPermission(result)
       
@@ -195,7 +247,7 @@ export function useNotifications() {
       }
       return false
     } catch (error) {
-      console.error('Error solicitando permisos:', error)
+      console.error('❌ [NOTIFICATIONS] Error solicitando permisos:', error)
       toast({
         title: "Error",
         description: "No se pudieron solicitar los permisos de notificación",
@@ -207,15 +259,21 @@ export function useNotifications() {
 
   // Mostrar notificación
   const showNotification = useCallback(async (options: NotificationOptions) => {
-    if (!notificationsEnabled) return
-
-    // Reproducir sonido primero
+    // IMPORTANTE: Reproducir sonido SIEMPRE si está habilitado, independientemente de las notificaciones
     if (soundEnabled) {
+      console.log('🔊 [NOTIFICATIONS] Reproduciendo sonido para notificación')
       await playSound('message')
+    }
+
+    // Si las notificaciones están deshabilitadas, solo se reproduce el sonido
+    if (!notificationsEnabled) {
+      console.log('🔕 [NOTIFICATIONS] Notificaciones deshabilitadas, solo se reprodujo el sonido')
+      return
     }
 
     // Si no hay permisos, mostrar solo toast
     if (permission !== 'granted') {
+      console.log('⚠️ [NOTIFICATIONS] Sin permisos, mostrando toast')
       toast({
         title: options.title,
         description: options.body,
@@ -229,10 +287,12 @@ export function useNotifications() {
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         requireInteraction: false,
-        silent: !soundEnabled, // Si el sonido está deshabilitado, usar silent
+        silent: true, // Silenciar notificación del sistema porque ya reproducimos nuestro sonido
         ...options
       }
 
+      console.log('🔔 [NOTIFICATIONS] Mostrando notificación del sistema')
+      
       // Crear notificación
       const notification = new Notification(options.title, notificationOptions)
       
@@ -256,7 +316,7 @@ export function useNotifications() {
       }
 
     } catch (error) {
-      console.error('Error mostrando notificación:', error)
+      console.error('❌ [NOTIFICATIONS] Error mostrando notificación:', error)
       // Fallback a toast
       toast({
         title: options.title,
@@ -292,26 +352,54 @@ export function useNotifications() {
 
   // Funciones para cambiar configuración
   const toggleSound = useCallback(async () => {
-    const newValue = !soundEnabled
-    setSoundEnabled(newValue)
-    localStorage.setItem('notifications-sound-enabled', JSON.stringify(newValue))
-    
-    if (newValue) {
-      // Intentar inicializar el audio automáticamente cuando se habilite el sonido
+    try {
+      const newValue = !soundEnabled
+      setSoundEnabled(newValue)
+      
       try {
-        await initializeSounds()
-        // Reproducir sonido de prueba si se inicializó correctamente
-        await playSound('message')
-      } catch (error) {
-        console.log('🔊 [NOTIFICATIONS] Audio no se pudo inicializar automáticamente, requerirá interacción manual')
+        localStorage.setItem('notifications-sound-enabled', JSON.stringify(newValue))
+      } catch (storageError) {
+        console.warn('⚠️ [NOTIFICATIONS] Error guardando en localStorage:', storageError)
       }
+      
+      if (newValue && !audioInitialized) {
+        // Intentar inicializar el audio automáticamente cuando se habilite el sonido
+        try {
+          const initialized = await initializeSounds()
+          if (initialized) {
+            // Reproducir sonido de prueba si se inicializó correctamente
+            await playSound('message')
+            console.log('✅ [NOTIFICATIONS] Audio inicializado automáticamente al activar sonido')
+          }
+        } catch (error) {
+          console.log('🔊 [NOTIFICATIONS] Audio no se pudo inicializar automáticamente, requerirá interacción manual')
+        }
+      } else if (newValue && audioInitialized) {
+        // Si ya está inicializado, solo reproducir sonido de prueba
+        try {
+          await playSound('message')
+        } catch (error) {
+          console.warn('⚠️ [NOTIFICATIONS] Error reproduciendo sonido de prueba:', error)
+        }
+      }
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS] Error en toggleSound:', error)
     }
-  }, [soundEnabled, playSound, initializeSounds])
+  }, [soundEnabled, audioInitialized, playSound, initializeSounds])
 
   const toggleNotifications = useCallback(() => {
-    const newValue = !notificationsEnabled
-    setNotificationsEnabled(newValue)
-    localStorage.setItem('notifications-enabled', JSON.stringify(newValue))
+    try {
+      const newValue = !notificationsEnabled
+      setNotificationsEnabled(newValue)
+      
+      try {
+        localStorage.setItem('notifications-enabled', JSON.stringify(newValue))
+      } catch (storageError) {
+        console.warn('⚠️ [NOTIFICATIONS] Error guardando en localStorage:', storageError)
+      }
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS] Error en toggleNotifications:', error)
+    }
   }, [notificationsEnabled])
 
   // Test de notificación

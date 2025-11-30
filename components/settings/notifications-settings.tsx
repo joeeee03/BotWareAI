@@ -11,29 +11,59 @@ import { Bell, BellOff, Volume2, VolumeX, TestTube, CheckCircle, XCircle, AlertC
 import { cn } from '@/lib/utils'
 
 export function NotificationsSettings() {
+  const [hasError, setHasError] = useState(false)
+  
+  // Intentar usar el hook con manejo de errores
+  let hookData
+  try {
+    hookData = useNotifications()
+  } catch (error) {
+    console.error('❌ [NOTIFICATIONS-SETTINGS] Error al cargar hook de notificaciones:', error)
+    setHasError(true)
+  }
+
   const {
-    isSupported,
-    permission,
-    soundEnabled,
-    notificationsEnabled,
-    audioInitialized,
-    requestPermission,
-    toggleSound,
-    toggleNotifications,
-    testNotification,
-    initializeSounds,
-    canShowNotifications,
-    needsPermission
-  } = useNotifications()
+    isSupported = false,
+    permission = 'default',
+    soundEnabled = false,
+    notificationsEnabled = false,
+    audioInitialized = false,
+    requestPermission = async () => false,
+    toggleSound = async () => {},
+    toggleNotifications = () => {},
+    testNotification = async () => {},
+    initializeSounds = async () => false,
+    canShowNotifications = false,
+    needsPermission = false
+  } = hookData || {}
 
   const [isRequesting, setIsRequesting] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isInitializingAudio, setIsInitializingAudio] = useState(false)
 
+  // Si hay error, mostrar mensaje de error
+  if (hasError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BellOff className="h-5 w-5" />
+            Error al cargar notificaciones
+          </CardTitle>
+          <CardDescription>
+            Hubo un problema al cargar la configuración de notificaciones. Por favor, recarga la página.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const handleRequestPermission = async () => {
     setIsRequesting(true)
     try {
       await requestPermission()
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS-SETTINGS] Error solicitando permisos:', error)
     } finally {
       setIsRequesting(false)
     }
@@ -43,6 +73,8 @@ export function NotificationsSettings() {
     setIsTesting(true)
     try {
       await testNotification()
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS-SETTINGS] Error probando notificación:', error)
     } finally {
       setTimeout(() => setIsTesting(false), 2000)
     }
@@ -52,6 +84,8 @@ export function NotificationsSettings() {
     setIsInitializingAudio(true)
     try {
       await initializeSounds()
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS-SETTINGS] Error inicializando audio:', error)
     } finally {
       setIsInitializingAudio(false)
     }
