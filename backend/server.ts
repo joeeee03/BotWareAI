@@ -16,7 +16,7 @@ const httpServer = createServer(app)
 console.log("[v0] Express and HTTP server created")
 
 // [TAG: WebSocket]
-// Socket.IO configuration with CORS and authentication
+// Socket.IO configuration with CORS and authentication - OPTIMIZED FOR REAL-TIME
 export const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
@@ -50,13 +50,16 @@ export const io = new Server(httpServer, {
     allowedHeaders: ["*"],
   },
   path: '/socket.io',
-  // En Railway, priorizar polling porque funciona mejor con Next.js proxy
-  transports: ['polling', 'websocket'],
-  allowEIO3: true, // Compatibilidad con versiones anteriores
-  pingTimeout: 60000, // Más tiempo para Railway
-  pingInterval: 25000,
-  upgradeTimeout: 30000,
+  // OPTIMIZADO PARA TIEMPO REAL SUPER FLUIDO
+  transports: ['websocket', 'polling'], // Priorizar WebSocket para mejor rendimiento
+  allowEIO3: true,
+  pingTimeout: 20000, // Reducido para detectar desconexiones más rápido
+  pingInterval: 10000, // Más frecuente para mantener conexión activa
+  upgradeTimeout: 10000, // Más rápido upgrade a WebSocket
   maxHttpBufferSize: 1e6,
+  // Configuraciones adicionales para fluidez
+  connectTimeout: 45000,
+  serveClient: false // No servir cliente desde servidor
 })
 
 console.log("[v0] Socket.IO configured")

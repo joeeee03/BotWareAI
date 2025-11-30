@@ -23,6 +23,7 @@ import { TemplatesMenu } from "./templates-menu"
 import { VariableInserter } from "@/components/ui/variable-inserter"
 import { RichTextInput } from "@/components/ui/rich-text-input"
 import { MultimediaMessage } from "./multimedia-message"
+import { useNotifications } from "@/hooks/use-notifications"
 
 interface MessageThreadProps {
   conversation: any
@@ -63,6 +64,9 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
   const newestMessageIdRef = useRef<number | null>(null)
   const { toast } = useToast()
   const userCountry = getUserCountry()
+  
+  // Hook de notificaciones
+  const { notifyNewMessage, playSound } = useNotifications()
 
   const token = apiClient.getToken()
 
@@ -116,6 +120,38 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
           }
           
           console.log("✨ [MESSAGE-THREAD] Appending new message with text:", newMessage.message)
+          
+          // 🔔 NOTIFICACIONES: Solo notificar si el mensaje es del usuario (no del bot)
+          if (newMessage.sender === 'user') {
+            const senderName = conversation?.customer_name || conversation?.customer_phone || 'Usuario'
+            
+            // Verificar si la ventana está en foco
+            const isWindowFocused = document.hasFocus()
+            const isTabVisible = !document.hidden
+            
+            // Solo notificar si la ventana no está en foco o la pestaña no es visible
+            if (!isWindowFocused || !isTabVisible) {
+              console.log("🔔 [NOTIFICATIONS] Enviando notificación para mensaje de:", senderName)
+              
+              // Formatear mensaje para notificación
+              let notificationMessage = newMessage.message
+              if (newMessage.type === 'image') {
+                notificationMessage = '📷 Imagen'
+              } else if (newMessage.type === 'video') {
+                notificationMessage = '🎥 Video'
+              } else if (newMessage.type === 'audio') {
+                notificationMessage = '🎵 Audio'
+              }
+              
+              // Enviar notificación
+              notifyNewMessage(senderName, notificationMessage, conversation?.id)
+            } else {
+              // Si la ventana está en foco, solo reproducir sonido suave
+              console.log("🔔 [NOTIFICATIONS] Ventana en foco, solo reproduciendo sonido")
+              playSound('message')
+            }
+          }
+          
           // Append new message at the end (bottom)
           const newMessages = [...prev, newMessage]
           
@@ -633,37 +669,53 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
 
   return (
     <div className="flex-1 flex flex-col h-full dark:bg-slate-900 bg-white">
-      {/* Header */}
-      <div className="p-3 sm:p-4 border-b dark:border-slate-700 border-blue-200 flex items-center justify-between dark:bg-slate-800/50 bg-white/90 shadow-sm">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          {/* Botón volver para móviles */}
+      {/* Header - OPTIMIZADO PARA MÓVIL */}
+      <div className="p-2 sm:p-4 border-b dark:border-slate-700 border-blue-200 flex items-center justify-between dark:bg-slate-800/50 bg-white/90 shadow-sm">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {/* Botón volver para móviles - Más compacto */}
           <button
             onClick={onClose}
-            className="md:hidden p-2.5 rounded-lg dark:bg-slate-700/50 bg-blue-100/50 dark:text-slate-300 text-slate-600 hover:dark:bg-slate-600/50 hover:bg-blue-200/50 transition-colors flex-shrink-0 active:scale-95"
+            className="md:hidden p-2 rounded-lg dark:bg-slate-700/50 bg-blue-100/50 dark:text-slate-300 text-slate-600 hover:dark:bg-slate-600/50 hover:bg-blue-200/50 transition-colors flex-shrink-0 active:scale-95"
             aria-label="Volver a conversaciones"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           
-          <div className="min-w-0 flex-1">
-            <h2 className="font-semibold dark:text-slate-100 text-slate-800 text-base sm:text-lg truncate">
-              {conversation.customer_name || conversation.customer_phone}
-            </h2>
-            <p className="text-sm dark:text-slate-400 text-slate-600 truncate">{conversation.customer_phone}</p>
+          {/* Avatar y info del contacto */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            {/* Avatar con inicial */}
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-semibold text-sm sm:text-base">
+                {(conversation.customer_name || conversation.customer_phone)?.charAt(0)?.toUpperCase() || '?'}
+              </span>
+            </div>
+            
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold dark:text-slate-100 text-slate-800 text-sm sm:text-lg truncate leading-tight">
+                {conversation.customer_name || conversation.customer_phone}
+              </h2>
+              {/* Solo mostrar teléfono si es diferente del nombre */}
+              {conversation.customer_name && conversation.customer_name !== conversation.customer_phone && (
+                <p className="text-xs sm:text-sm dark:text-slate-400 text-slate-600 truncate leading-tight">
+                  {conversation.customer_phone}
+                </p>
+              )}
+            </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        {/* Status indicator - Más compacto en móvil */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {isLoading && (
-            <div className="text-xs dark:text-slate-400 text-slate-500 animate-pulse">
+            <div className="text-xs dark:text-slate-400 text-slate-500 animate-pulse hidden sm:block">
               Cargando...
             </div>
           )}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full dark:bg-slate-700/50 bg-blue-100/50">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full dark:bg-slate-700/50 bg-blue-100/50">
             <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-400" : "bg-red-400")} />
-            <span className="text-xs dark:text-slate-300 text-slate-600 font-medium">
+            <span className="text-xs dark:text-slate-300 text-slate-600 font-medium hidden sm:inline">
               {isConnected ? "En línea" : "Desconectado"}
             </span>
           </div>
@@ -781,8 +833,14 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
           </div>
         )}
         
-        <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
-          <div className="flex gap-2">
+        {/* LAYOUT OPTIMIZADO PARA MÓVIL - Evita que el botón se vaya muy a la derecha */}
+        <form onSubmit={handleSendMessage} className="flex items-end gap-1 sm:gap-2">
+          {/* Botones de multimedia - Solo en desktop o cuando no hay texto */}
+          <div className={cn(
+            "flex gap-1 transition-all duration-200",
+            // En móvil, ocultar botones cuando hay texto para dar más espacio
+            inputMessage.trim() ? "hidden sm:flex" : "flex"
+          )}>
             {/* Image upload button */}
             <label className="flex-shrink-0 cursor-pointer">
               <input
@@ -793,12 +851,12 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                 disabled={isSending || isUploading || !!attachedFile}
               />
               <div className={cn(
-                "h-11 w-11 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center transition-all",
+                "h-10 w-10 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center transition-all",
                 attachedFile || isSending || isUploading
                   ? "bg-slate-700/30 text-slate-500 cursor-not-allowed"
                   : "bg-blue-600/20 text-blue-500 hover:bg-blue-600/30 active:scale-95"
               )}>
-                <ImageIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+                <ImageIcon className="h-4 w-4" />
               </div>
             </label>
 
@@ -812,17 +870,18 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                 disabled={isSending || isUploading || !!attachedFile}
               />
               <div className={cn(
-                "h-11 w-11 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center transition-all",
+                "h-10 w-10 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center transition-all",
                 attachedFile || isSending || isUploading
                   ? "bg-slate-700/30 text-slate-500 cursor-not-allowed"
                   : "bg-purple-600/20 text-purple-500 hover:bg-purple-600/30 active:scale-95"
               )}>
-                <Video className="h-5 w-5 sm:h-4 sm:w-4" />
+                <Video className="h-4 w-4" />
               </div>
             </label>
           </div>
 
-          <div className="flex-1 relative">
+          {/* Input container - Toma el espacio disponible */}
+          <div className="flex-1 min-w-0 relative">
             {showTemplatesMenu && (
               <TemplatesMenu
                 onSelect={handleTemplateSelect}
@@ -854,12 +913,13 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
                     handleSendMessage(e as any)
                   }
                 }}
-                placeholder="Escribe un mensaje... (usa / para templates)"
+                placeholder="Escribe un mensaje..."
                 disabled={isSending || isUploading}
                 singleLine={true}
-                className="h-11 sm:h-10 text-base sm:text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 focus:border-blue-500 focus:ring-blue-500 rounded-xl pr-10"
+                className="h-10 w-full text-sm dark:bg-slate-700/50 bg-blue-50/50 dark:border-slate-600 border-blue-200 dark:text-slate-100 text-slate-800 focus:border-blue-500 focus:ring-blue-500 rounded-lg pr-8"
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              {/* Variable inserter - Solo visible en desktop */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:block">
                 <VariableInserter
                   onInsert={(variable) => {
                     const newMessage = inputMessage + variable
@@ -869,15 +929,17 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
               </div>
             </div>
           </div>
+
+          {/* Send button - Siempre visible y del mismo tamaño */}
           <Button 
             type="submit" 
             disabled={isSending || isUploading || (!inputMessage.trim() && !attachedFile)}
-            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white h-11 w-11 sm:h-10 sm:w-10 p-0 rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white h-10 w-10 p-0 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex-shrink-0"
           >
             {isUploading ? (
-              <div className="w-5 h-5 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <Send className="h-5 w-5 sm:h-4 sm:w-4" />
+              <Send className="h-4 w-4" />
             )}
           </Button>
         </form>

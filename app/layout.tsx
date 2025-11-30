@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/auth-context'
 import { ThemeProvider } from '@/components/theme-provider'
 import { FaviconSwitcher } from '@/components/FaviconSwitcher'
 import { Toaster } from '@/components/ui/toaster'
+import { ServiceWorkerRegister } from '@/components/service-worker-register'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -69,6 +70,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FaviconSwitcher />
+          <ServiceWorkerRegister />
           <AuthProvider>
             {children}
             <Toaster />
