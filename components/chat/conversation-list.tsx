@@ -25,7 +25,7 @@ import { stripWhatsAppFormatting } from "@/lib/whatsapp-formatter"
 import { getCountryList, setUserCountry } from "@/lib/timezone-utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "next-themes"
-import { Sun, Moon, Settings, User, Lock, LogOut, Palette } from "lucide-react"
+import { Sun, Moon, Settings, User, Lock, LogOut, Palette, Bell } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
@@ -38,6 +38,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SettingsDialog } from "@/components/settings/settings-dialog"
+import { ProfileDialog } from "@/components/settings/profile-dialog"
+import { NotificationsDialog } from "@/components/settings/notifications-dialog"
 
 interface ConversationListProps {
   conversations: any[]
@@ -119,7 +121,9 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
 
   const [open, setOpen] = React.useState(false)
   const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false)
-  const [settingsActiveTab, setSettingsActiveTab] = React.useState("profile")
+  const [settingsActiveTab, setSettingsActiveTab] = React.useState("templates")
+  const [profileDialogOpen, setProfileDialogOpen] = React.useState(false)
+  const [notificationsDialogOpen, setNotificationsDialogOpen] = React.useState(false)
   // General settings state
   const [displayName, setDisplayName] = useState("")
   const [selectedCountry, setSelectedCountry] = useState(userCountry)
@@ -239,9 +243,13 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { setSettingsActiveTab("profile"); setSettingsDialogOpen(true); }} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
+                <DropdownMenuItem onClick={() => setProfileDialogOpen(true)} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
                   <User className="mr-2 h-4 w-4" />
                   <span>Mi Perfil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setNotificationsDialogOpen(true)} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
+                  <Bell className="mr-2 h-4 w-4" />
+                  <span>Notificaciones</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => { setSettingsActiveTab("templates"); setSettingsDialogOpen(true); }} className="dark:text-slate-200 text-slate-700 dark:hover:bg-slate-700 hover:bg-blue-50">
                   <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,7 +285,7 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Settings Dialog */}
+            {/* Settings Dialog (Templates y Programados) */}
             <SettingsDialog 
               userEmail={user?.email || ''} 
               displayName={displayName}
@@ -288,11 +296,26 @@ export const ConversationList = React.forwardRef<HTMLDivElement, ConversationLis
               onDisplayNameUpdate={(newName) => setDisplayName(newName)}
             />
             
+            {/* Profile Dialog */}
+            <ProfileDialog 
+              userEmail={user?.email || ''} 
+              displayName={displayName}
+              open={profileDialogOpen}
+              onOpenChange={setProfileDialogOpen}
+              onDisplayNameUpdate={(newName) => setDisplayName(newName)}
+            />
+            
+            {/* Notifications Dialog */}
+            <NotificationsDialog 
+              open={notificationsDialogOpen}
+              onOpenChange={setNotificationsDialogOpen}
+            />
+            
             {/* User Avatar (clickable for profile) */}
             <Button
               variant="ghost"
               className="relative h-10 w-10 rounded-full p-0"
-              onClick={() => { setSettingsActiveTab("profile"); setSettingsDialogOpen(true); }}
+              onClick={() => setProfileDialogOpen(true)}
               title="Mi Perfil"
             >
               <Avatar className="h-10 w-10">

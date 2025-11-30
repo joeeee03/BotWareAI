@@ -1,14 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Settings, MessageSquare, Clock, User, Bell } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useState } from "react"
+import { MessageSquare, Clock } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
 import { TemplatesTab } from "./templates-tab"
 import { ScheduledMessagesTab } from "./scheduled-messages-tab"
-import { ProfileTab } from "./profile-tab"
-import { NotificationsSettings } from "./notifications-settings"
 
 interface SettingsDialogProps {
   userEmail: string
@@ -45,7 +42,7 @@ export function SettingsDialog({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               <span className="hidden sm:inline">Templates</span>
@@ -53,14 +50,6 @@ export function SettingsDialog({
             <TabsTrigger value="scheduled" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               <span className="hidden sm:inline">Programados</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">Notificaciones</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Perfil</span>
             </TabsTrigger>
           </TabsList>
 
@@ -71,18 +60,6 @@ export function SettingsDialog({
 
             <TabsContent value="scheduled" className="h-full m-0">
               <ScheduledMessagesTab />
-            </TabsContent>
-
-            <TabsContent value="notifications" className="h-full m-0">
-              <NotificationsSettings />
-            </TabsContent>
-
-            <TabsContent value="profile" className="h-full m-0">
-              <ProfileTab 
-                userEmail={userEmail} 
-                initialDisplayName={displayName}
-                onDisplayNameUpdate={onDisplayNameUpdate}
-              />
             </TabsContent>
           </div>
         </Tabs>
