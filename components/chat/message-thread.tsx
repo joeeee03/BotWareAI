@@ -122,12 +122,24 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
           console.log("✨ [MESSAGE-THREAD] Appending new message with text:", newMessage.message)
           
           // 🔔 NOTIFICACIONES: Solo notificar si el mensaje es del usuario (no del bot)
+          console.log("🔔 [NOTIFICATIONS] Verificando mensaje para notificaciones:", {
+            sender: newMessage.sender,
+            messageId: newMessage.id,
+            conversationId: newMessage.conversation_id
+          })
+          
           if (newMessage.sender === 'user') {
             const senderName = conversation?.customer_name || conversation?.customer_phone || 'Usuario'
             
             // Verificar si la ventana está en foco
             const isWindowFocused = document.hasFocus()
             const isTabVisible = !document.hidden
+            
+            console.log("🔔 [NOTIFICATIONS] Estado de la ventana:", {
+              isWindowFocused,
+              isTabVisible,
+              shouldNotify: !isWindowFocused || !isTabVisible
+            })
             
             // Solo notificar si la ventana no está en foco o la pestaña no es visible
             if (!isWindowFocused || !isTabVisible) {
@@ -150,6 +162,8 @@ export function MessageThread({ conversation, onConversationUpdate, onUpdateSend
               console.log("🔔 [NOTIFICATIONS] Ventana en foco, solo reproduciendo sonido")
               playSound('message')
             }
+          } else {
+            console.log("🔔 [NOTIFICATIONS] Mensaje del bot, no se envía notificación")
           }
           
           // Append new message at the end (bottom)

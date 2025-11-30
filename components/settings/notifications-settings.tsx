@@ -16,16 +16,19 @@ export function NotificationsSettings() {
     permission,
     soundEnabled,
     notificationsEnabled,
+    audioInitialized,
     requestPermission,
     toggleSound,
     toggleNotifications,
     testNotification,
+    initializeSounds,
     canShowNotifications,
     needsPermission
   } = useNotifications()
 
   const [isRequesting, setIsRequesting] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
+  const [isInitializingAudio, setIsInitializingAudio] = useState(false)
 
   const handleRequestPermission = async () => {
     setIsRequesting(true)
@@ -42,6 +45,15 @@ export function NotificationsSettings() {
       await testNotification()
     } finally {
       setTimeout(() => setIsTesting(false), 2000)
+    }
+  }
+
+  const handleInitializeAudio = async () => {
+    setIsInitializingAudio(true)
+    try {
+      await initializeSounds()
+    } finally {
+      setIsInitializingAudio(false)
     }
   }
 
@@ -199,6 +211,11 @@ export function NotificationsSettings() {
                   <VolumeX className="h-4 w-4 text-gray-400" />
                 )}
                 <span className="font-medium">Sonidos de notificación</span>
+                {soundEnabled && !audioInitialized && (
+                  <Badge variant="secondary" className="text-xs">
+                    Requiere activación
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 Reproducir sonido cuando lleguen mensajes
@@ -209,6 +226,42 @@ export function NotificationsSettings() {
               onCheckedChange={toggleSound}
             />
           </div>
+
+          {/* Botón para inicializar audio si está habilitado pero no inicializado */}
+          {soundEnabled && !audioInitialized && (
+            <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Audio no inicializado
+                  </p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                    Los navegadores requieren una interacción del usuario para reproducir sonidos. Haz clic en el botón para activar el audio.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleInitializeAudio}
+                    disabled={isInitializingAudio}
+                    className="mt-3 bg-yellow-100 hover:bg-yellow-200 border-yellow-300 text-yellow-800 dark:bg-yellow-900/40 dark:hover:bg-yellow-900/60 dark:border-yellow-700 dark:text-yellow-200"
+                  >
+                    {isInitializingAudio ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        Inicializando...
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-4 w-4 mr-2" />
+                        Activar Audio
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Botón de prueba */}
           <div className="pt-4 border-t dark:border-slate-700">

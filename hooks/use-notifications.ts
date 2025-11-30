@@ -26,6 +26,7 @@ export function useNotifications() {
   const [isSupported, setIsSupported] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [audioInitialized, setAudioInitialized] = useState(false)
   const { toast } = useToast()
   
   // Referencias para los sonidos
@@ -51,19 +52,32 @@ export function useNotifications() {
     }
   }, [])
 
-  // Inicializar sonidos
+  // Inicializar sonidos cuando sea necesario (no automáticamente)
   useEffect(() => {
-    if (typeof window !== 'undefined' && soundEnabled) {
-      initializeSounds()
+    if (typeof window !== 'undefined' && soundEnabled && !audioInitialized) {
+      // No inicializar automáticamente - esperar a la primera interacción del usuario
+      console.log('🔊 [NOTIFICATIONS] Audio habilitado, esperando interacción del usuario para inicializar')
     }
-  }, [soundEnabled])
+  }, [soundEnabled, audioInitialized])
 
   // Función para inicializar sonidos
-  const initializeSounds = useCallback(() => {
+  const initializeSounds = useCallback(async () => {
+    if (audioInitialized) return true
+
     try {
+      console.log('🔊 [NOTIFICATIONS] Inicializando AudioContext...')
+      
       // Crear AudioContext si no existe
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
+
+      const audioContext = audioContextRef.current
+      
+      // Reanudar el contexto si está suspendido (requerido por navegadores modernos)
+      if (audioContext.state === 'suspended') {
+        console.log('🔊 [NOTIFICATIONS] Reanudando AudioContext suspendido...')
+        await audioContext.resume()
       }
 
       // Definir sonidos usando frecuencias (no requiere archivos externos)
@@ -72,20 +86,44 @@ export function useNotifications() {
         notification: 'notification', // Sonido para notificaciones importantes
         call: 'call' // Sonido para llamadas (futuro)
       }
+
+      setAudioInitialized(true)
+      console.log('✅ [NOTIFICATIONS] AudioContext inicializado correctamente')
+      return true
     } catch (error) {
-      console.warn('Error inicializando sonidos:', error)
+      console.warn('❌ [NOTIFICATIONS] Error inicializando sonidos:', error)
+      return false
     }
-  }, [])
+  }, [audioInitialized])
 
   // Función para generar y reproducir sonido usando Web Audio API
   const playSound = useCallback(async (type: keyof NotificationSound = 'message') => {
-    if (!soundEnabled || !audioContextRef.current) return
+    if (!soundEnabled) {
+      console.log('🔇 [NOTIFICATIONS] Sonido deshabilitado')
+      return
+    }
+
+    // Inicializar audio si no está inicializado
+    if (!audioInitialized) {
+      console.log('🔊 [NOTIFICATIONS] Inicializando audio antes de reproducir sonido...')
+      const initialized = await initializeSounds()
+      if (!initialized) {
+        console.warn('❌ [NOTIFICATIONS] No se pudo inicializar el audio')
+        return
+      }
+    }
+
+    if (!audioContextRef.current) {
+      console.warn('❌ [NOTIFICATIONS] AudioContext no disponible')
+      return
+    }
 
     try {
       const audioContext = audioContextRef.current
       
       // Reanudar el contexto si está suspendido
       if (audioContext.state === 'suspended') {
+        console.log('🔊 [NOTIFICATIONS] Reanudando AudioContext...')
         await audioContext.resume()
       }
 
@@ -119,10 +157,12 @@ export function useNotifications() {
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + config.duration)
       
+      console.log(`🔊 [NOTIFICATIONS] Sonido ${type} reproducido correctamente`)
+      
     } catch (error) {
-      console.warn('Error reproduciendo sonido:', error)
+      console.warn('❌ [NOTIFICATIONS] Error reproduciendo sonido:', error)
     }
-  }, [soundEnabled])
+  }, [soundEnabled, audioInitialized, initializeSounds])
 
   // Solicitar permisos de notificación
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -251,15 +291,22 @@ export function useNotifications() {
   }, [showNotification, soundEnabled, playSound])
 
   // Funciones para cambiar configuración
-  const toggleSound = useCallback(() => {
+  const toggleSound = useCallback(async () => {
     const newValue = !soundEnabled
     setSoundEnabled(newValue)
     localStorage.setItem('notifications-sound-enabled', JSON.stringify(newValue))
     
     if (newValue) {
-      playSound('message') // Reproducir sonido de prueba
+      // Intentar inicializar el audio automáticamente cuando se habilite el sonido
+      try {
+        await initializeSounds()
+        // Reproducir sonido de prueba si se inicializó correctamente
+        await playSound('message')
+      } catch (error) {
+        console.log('🔊 [NOTIFICATIONS] Audio no se pudo inicializar automáticamente, requerirá interacción manual')
+      }
     }
-  }, [soundEnabled, playSound])
+  }, [soundEnabled, playSound, initializeSounds])
 
   const toggleNotifications = useCallback(() => {
     const newValue = !notificationsEnabled
@@ -278,6 +325,7 @@ export function useNotifications() {
     permission,
     soundEnabled,
     notificationsEnabled,
+    audioInitialized,
     
     // Funciones principales
     requestPermission,
@@ -285,6 +333,7 @@ export function useNotifications() {
     notifyNewMessage,
     notifyImportant,
     playSound,
+    initializeSounds,
     
     // Configuración
     toggleSound,
