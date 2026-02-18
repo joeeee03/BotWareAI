@@ -8,13 +8,33 @@ import { decrypt } from '../utils/message-decryption.js'
 const { Client } = pg
 
 let listenerClient: pg.Client | null = null
+let reconnectTimer: NodeJS.Timeout | null = null
+let reconnectAttempt = 0
+let isStarting = false
 
 /**
  * Iniciar listener de PostgreSQL para detectar nuevos mensajes
  */
 export async function startMessageListener() {
+  if (isStarting) return
+  isStarting = true
+
   try {
     console.log('[MESSAGE-LISTENER] 🎧 Iniciando PostgreSQL LISTEN para nuevos mensajes...')
+
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+
+    if (listenerClient) {
+      try {
+        await listenerClient.end()
+      } catch {
+        // ignore
+      }
+      listenerClient = null
+    }
 
     // Crear cliente dedicado para LISTEN (no usar pool)
     // Usar DATABASE_URL si está disponible (Railway), sino variables individuales
@@ -30,9 +50,42 @@ export async function startMessageListener() {
 
     console.log('[MESSAGE-LISTENER] Conectando a PostgreSQL:', process.env.DATABASE_URL ? 'usando DATABASE_URL' : 'usando variables individuales')
     
-    listenerClient = new Client(connectionConfig)
+    listenerClient = new Client({
+      ...connectionConfig,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
+    })
+
+    const scheduleReconnect = () => {
+      if (reconnectTimer) return
+      const baseDelayMs = 1000
+      const maxDelayMs = 30_000
+      const expDelay = Math.min(maxDelayMs, baseDelayMs * (2 ** reconnectAttempt))
+      const jitter = Math.floor(Math.random() * 250)
+      const delay = expDelay + jitter
+
+      reconnectAttempt += 1
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null
+        console.log('[MESSAGE-LISTENER] 🔄 Intentando reconectar...')
+        startMessageListener()
+      }, delay)
+    }
+
+    // IMPORTANTE: registrar handlers ANTES de connect() para evitar "Unhandled 'error' event"
+    listenerClient.on('error', (err) => {
+      console.error('[MESSAGE-LISTENER] ❌ Error de conexión PostgreSQL:', err)
+      scheduleReconnect()
+    })
+
+    listenerClient.on('end', () => {
+      console.error('[MESSAGE-LISTENER] ❌ Conexión PostgreSQL finalizada inesperadamente')
+      scheduleReconnect()
+    })
 
     await listenerClient.connect()
+    reconnectAttempt = 0
     console.log('[MESSAGE-LISTENER] ✅ Cliente PostgreSQL conectado para LISTEN')
 
     // Escuchar notificaciones de nuevos mensajes Y nuevas conversaciones
@@ -148,23 +201,17 @@ export async function startMessageListener() {
     await listenerClient.query('LISTEN new_conversation')
     console.log('[MESSAGE-LISTENER] ✅ Escuchando canales "new_message" y "new_conversation"')
 
-    // Manejar errores de conexión
-    listenerClient.on('error', (err) => {
-      console.error('[MESSAGE-LISTENER] ❌ Error de conexión PostgreSQL:', err)
-      // Intentar reconectar
-      setTimeout(() => {
-        console.log('[MESSAGE-LISTENER] 🔄 Intentando reconectar...')
-        startMessageListener()
-      }, 5000)
-    })
-
   } catch (error) {
     console.error('[MESSAGE-LISTENER] ❌ Error al iniciar listener:', error)
-    // Reintentar en 5 segundos
-    setTimeout(() => {
+    reconnectAttempt += 1
+    const delay = Math.min(30_000, 1000 * (2 ** (reconnectAttempt - 1)))
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null
       console.log('[MESSAGE-LISTENER] 🔄 Reintentando iniciar listener...')
       startMessageListener()
-    }, 5000)
+    }, delay)
+  } finally {
+    isStarting = false
   }
 }
 
